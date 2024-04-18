@@ -41,7 +41,8 @@ def get_company_details(company_name, REPO_OWNER, REPO_NAME, GITHUB_TOKEN):
     company_details = {}
 
     # Construct the URL for the JSON file in the GitHub repository
-    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/details.json'
+    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/details.json?ref=pipeline-1'
+
 
     # Set up headers with authorization token
     headers = {
@@ -64,8 +65,8 @@ def get_company_details(company_name, REPO_OWNER, REPO_NAME, GITHUB_TOKEN):
 
             # Construct the URL for the YAML file based on the extracted repo_name and username
             if repo_name and username:
-                file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{username}.yaml'
-                yaml_url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
+                file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{username}.yaml?ref=pipeline-1'
+                yaml_url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}?ref=pipeline-1'
 
                 # Make GET request to GitHub API to fetch the YAML content
                 yaml_response = requests.get(yaml_url, headers=headers)
@@ -197,9 +198,9 @@ def add_form():
         add_data_to_json(username,companyname,repo_name, GITHUB_TOKEN, REPO_OWNER, REPO_NAME)
 
         file_name = f'{data["name"]}.yaml'
-        file_path = f'Pipeline/SoftwareMathematics/{data["company name"]}/{repo_name}/{file_name}'
+        file_path = f'Pipeline/SoftwareMathematics/{data["company name"]}/{repo_name}/{file_name}?ref=pipeline-1'
 
-        url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
+        url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}?ref=pipeline-1'
 
         headers = {
             'Authorization': f'token {GITHUB_TOKEN}',
@@ -242,7 +243,7 @@ def add_data_to_json(username, companyname, repo_url, github_token, repo_owner, 
         }
     }
 
-    url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/contents/details.json'
+    url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/contents/details.json?ref=pipeline-1'
     headers = {
         'Authorization': f'token {github_token}',
         'Accept': 'application/vnd.github.v3+json'
