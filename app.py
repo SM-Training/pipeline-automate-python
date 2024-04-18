@@ -41,7 +41,7 @@ def get_company_details(company_name, REPO_OWNER, REPO_NAME, GITHUB_TOKEN):
     company_details = {}
 
     # Construct the URL for the JSON file in the GitHub repository
-    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/details.json?ref=pipeline-1'
+    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/details.json'
 
 
     # Set up headers with authorization token
@@ -65,8 +65,8 @@ def get_company_details(company_name, REPO_OWNER, REPO_NAME, GITHUB_TOKEN):
 
             # Construct the URL for the YAML file based on the extracted repo_name and username
             if repo_name and username:
-                file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{username}.yaml?ref=pipeline-1'
-                yaml_url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}?ref=pipeline-1'
+                file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{username}.yaml'
+                yaml_url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
 
                 # Make GET request to GitHub API to fetch the YAML content
                 yaml_response = requests.get(yaml_url, headers=headers)
@@ -198,16 +198,19 @@ def add_form():
         add_data_to_json(username,companyname,repo_name, GITHUB_TOKEN, REPO_OWNER, REPO_NAME)
 
         file_name = f'{data["name"]}.yaml'
-        file_path = f'Pipeline/SoftwareMathematics/{data["company name"]}/{repo_name}/{file_name}?ref=pipeline-1'
+        file_path = f'Pipeline/SoftwareMathematics/{data["company name"]}/{repo_name}/{file_name}'
 
-        url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}?ref=pipeline-1'
+        url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
 
         headers = {
             'Authorization': f'token {GITHUB_TOKEN}',
             'Accept': 'application/vnd.github.v3+json'
         }
-
+ 
+           
+        # response = requests.get(url, headers=headers)
         response = requests.get(url, headers=headers)
+
 
         if response.status_code == 200:
             # File already exists, update its content
@@ -218,6 +221,8 @@ def add_form():
                 'sha': existing_file['sha']  # SHA of the existing file for update
             }
             response = requests.put(url, headers=headers, json=payload)
+
+            # response = requests.put(url, headers=headers, json=payload,params={'ref': 'pipeline-1'})
         elif response.status_code == 404:
             # File does not exist, create a new file
             payload = {
@@ -233,6 +238,10 @@ def add_form():
 
     return "Data saved successfully!!"
 
+import requests
+import json
+import base64
+
 def add_data_to_json(username, companyname, repo_url, github_token, repo_owner, repo_name):
     # Get the existing content of the JSON file from GitHub
 
@@ -243,12 +252,14 @@ def add_data_to_json(username, companyname, repo_url, github_token, repo_owner, 
         }
     }
 
-    url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/contents/details.json?ref=pipeline-1'
+    url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/contents/details.json'
     headers = {
         'Authorization': f'token {github_token}',
         'Accept': 'application/vnd.github.v3+json'
     }
+    # response = requests.get(url, headers=headers)
     response = requests.get(url, headers=headers)
+
     
     if response.status_code == 200:
         # Decode and parse the existing JSON content
