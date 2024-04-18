@@ -2,5 +2,9 @@
     "123": {
         "username": "0191CSE056",
         "repo_url": "ys1"
+    },
+    "ABC": {
+        "username": "admin",
+        "repo_url": "python.git"
     }
 }
