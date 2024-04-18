@@ -1,0 +1,19 @@
+name: a
+company name: b
+repository url: c
+enabled: yes
+job_type: web
+run_command: sudo su
+src_path: a/a/a/a
+application_port: 23
+deploy_port: 32
+ssh_port_prod: 44
+ssh_port_dev: 232
+build_command: 32
+pvt_deploy_servers_dev: -198.168.1.1
+deploy_servers_dev: -198.168.1.1
+pvt_deploy_servers_prod:  -198.168.1.1
+deploy_servers_prod: -198.168.1.1
+deploy_env_prod: 198.168.1.1
+deploy_env_dev: 198.168.1.1
+deploy_env: -dev,prod
