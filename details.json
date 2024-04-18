@@ -6,5 +6,9 @@
     "ABC": {
         "username": "admin",
         "repo_url": "python.git"
+    },
+    "Cisco": {
+        "username": "0191CSE054",
+        "repo_url": "ys1.git"
     }
 }
