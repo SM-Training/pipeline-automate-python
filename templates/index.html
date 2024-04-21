@@ -24,9 +24,14 @@
         </div>
         <div class="col-md-6">
           <div class="mb-3">
-            <label for="exampleFormControlInput1" class="form-label">Company name<span
-                class="text-danger">*</span></label>
-            <input type="text" name="companyname" class="form-control" placeholder="Your Company name" required>
+            <label for="jobTypeSelect" class="form-label">Company Name<span class="text-danger">*</span></label>
+            <select class="form-select" id="jobTypeSelect" name="companyname" required>
+              <option value="" selected>Select Your Type</option>
+              <option value="Api">Api</option>
+              <option value="Ui">Ui</option>
+              <option value="Custom">Custom</option>
+            </select>
+            <div class="invalid-feedback">Please select your type.</div>
           </div>
         </div>
       </div>
@@ -245,12 +250,7 @@
               pvtDeployServersDevField.required = true;
               deployServersDevField.required = true;
               deployEnvDevField.required = true;
-              // } else if (deployEnvField.value === 'prod') {
-              //   // Add star mark to required fields for prod environment
-              //   addStarMarkToRequiredFields(['sshportdev', 'pvtdeployserversdev', 'deployserversdev', 'deployenvdev', 'sshportprod', 'pvtdeployserversprod', 'deployserversprod', 'deployenvprod']);
-              //   allFields.forEach(function (field) {
-              //     field.required = true;
-              //   });
+            
             } else {
               // Remove required fields and star marks for other cases
               allFields.forEach(function (field) {

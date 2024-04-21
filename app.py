@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request,redirect,url_for
+from flask import Flask, jsonify, render_template, request,redirect,url_for
 import requests
 import yaml
 import os
@@ -13,91 +13,109 @@ load_dotenv()
 app = Flask(__name__)
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-
 REPO_OWNER = os.getenv("REPO_OWNER")
 REPO_NAME = os.getenv("REPO_NAME")
 
+
+
+def fetch_file_names(company_name,repo_name, access_token):
+    file_names = []
+    
+    target_url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/Pipeline/SoftwareMathematics/{company_name}/{repo_name}'
+    headers = {"Authorization": f"token {access_token}"} if access_token else {}
+
+    response = requests.get(target_url, headers=headers)
+
+    if response.status_code != 200:
+        print(f"Failed to fetch Files. Status code: {response.status_code}")
+        return file_names
+
+    for item in response.json():
+        if item["type"] == "file":
+            file_names.append(item["name"])
+
+    return file_names
+
+def fetch_repo_names(company_name, access_token):
+    repo_names = []
+    
+    target_url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/Pipeline/SoftwareMathematics/{company_name}'
+
+    headers = {"Authorization": f"token {access_token}"} if access_token else {}
+
+    response = requests.get(target_url, headers=headers)
+
+    if response.status_code != 200:
+        print(f"Failed to fetch repositories. Status code: {response.status_code}")
+        return repo_names
+
+    for item in response.json():
+        if item["type"] == "dir":
+            repo_names.append(item["name"])
+
+    return repo_names
+
+
 def get_company_names(repo_owner, repo_name, github_token):
     company_names = []
-    url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/contents/details.json'
+
+    url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/contents/Pipeline/SoftwareMathematics'
     headers = {
         'Authorization': f'token {github_token}',
         'Accept': 'application/vnd.github.v3+json'
     }
+
     response = requests.get(url, headers=headers)
-    
+
     if response.status_code == 200:
-        # Decode and parse the existing JSON content
-        existing_content = json.loads(base64.b64decode(response.json()['content']).decode())
-        company_names = list(existing_content.keys())
+        # Parse the response JSON
+        content = response.json()
+        # Filter out directories
+        directories = [item['name'] for item in content if item['type'] == 'dir']
+        # Append directory names to company_names list
+        company_names.extend(directories)
     else:
         print(f"Failed to fetch company names. Status code: {response.status_code}")
         print("Response content:", response.content.decode())  # Print response content for debugging
-    
+
     return company_names
 
 
-def get_company_details(company_name, REPO_OWNER, REPO_NAME, GITHUB_TOKEN):
+def get_company_details(company_name,repo_name,file_name, REPO_OWNER, REPO_NAME, GITHUB_TOKEN):
+
     company_details = {}
 
-    # Construct the URL for the JSON file in the GitHub repository
-    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/details.json'
+    file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{file_name}'
+    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
 
-
-    # Set up headers with authorization token
     headers = {
         'Authorization': f'token {GITHUB_TOKEN}',
         'Accept': 'application/vnd.github.v3+json'
     }
 
-    # Make GET request to GitHub API to fetch the details.json content
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
-        # Decode and load JSON content from response
-        json_content = json.loads(base64.b64decode(response.json()['content']).decode())
 
-        if company_name in json_content:
-            # Extract repo_name and username from the JSON content based on the company_name
-            company_info = json_content[company_name]
-            repo_name = company_info.get('repo_url')
-            username = company_info.get('username')
+        yaml_content = yaml.safe_load(base64.b64decode(response.json()['content']).decode())
 
-            # Construct the URL for the YAML file based on the extracted repo_name and username
-            if repo_name and username:
-                file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{username}.yaml'
-                yaml_url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
+        if yaml_content is not None:
+            for key, value in yaml_content.items():
 
-                # Make GET request to GitHub API to fetch the YAML content
-                yaml_response = requests.get(yaml_url, headers=headers)
+                if value is None:
+                    yaml_content[key] = ""
 
-                if yaml_response.status_code == 200:
-                    # Decode and load YAML content from response
-                    yaml_content = yaml.safe_load(base64.b64decode(yaml_response.json()['content']).decode())
+                elif isinstance(value, str): 
+                    formatted_string = value.replace('-', '').split()
+                    formatted_string_space = ' '.join(formatted_string)
+                    yaml_content[key] = formatted_string_space
 
-                    # Check if yaml_content is not None
-                    if yaml_content is not None:
-                        # Correct the YAML syntax for each key-value pair
-                        for key, value in yaml_content.items():
-                            if value is None:  # Check if the value is None
-                                yaml_content[key] = ""  # Assign an empty string if value is None
-                            elif isinstance(value, str):  # Assuming IP addresses are given as strings
-                                # Split the string into a list of IP addresses
-                                formatted_string = value.replace('-', '').split()
-                                # Prefix each IP address with a hyphen
-                                formatted_string_space = ' '.join(formatted_string)
-                                # Join the IP addresses back into a single string
-                                yaml_content[key] = formatted_string_space
+            company_details = yaml_content
 
-                        company_details = yaml_content
-                    else:
-                        company_details = {}
-                else:
-                    print(f"Failed to fetch YAML content. Status code: {yaml_response.status_code}")
-
+        else:
+            company_details = {}
     else:
-        print(f"Failed to fetch details.json. Status code: {response.status_code}")
-        print("Response content:", response.content.decode())  # Print response content for debugging
+        print(f"Failed to fetch YAML content. Status code: {response.status_code}")
 
     return company_details
 
@@ -195,8 +213,6 @@ def add_form():
         repo_parts = data["repository url"].split('/')
         repo_name = repo_parts[-1]
         
-        add_data_to_json(username,companyname,repo_name, GITHUB_TOKEN, REPO_OWNER, REPO_NAME)
-
         file_name = f'{data["name"]}.yaml'
         file_path = f'Pipeline/SoftwareMathematics/{data["company name"]}/{repo_name}/{file_name}'
 
@@ -206,11 +222,8 @@ def add_form():
             'Authorization': f'token {GITHUB_TOKEN}',
             'Accept': 'application/vnd.github.v3+json'
         }
- 
-           
-        # response = requests.get(url, headers=headers)
-        response = requests.get(url, headers=headers)
 
+        response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
             # File already exists, update its content
@@ -221,8 +234,6 @@ def add_form():
                 'sha': existing_file['sha']  # SHA of the existing file for update
             }
             response = requests.put(url, headers=headers, json=payload)
-
-            # response = requests.put(url, headers=headers, json=payload,params={'ref': 'pipeline-1'})
         elif response.status_code == 404:
             # File does not exist, create a new file
             payload = {
@@ -237,95 +248,50 @@ def add_form():
             return f'Failed to save file to GitHub. Status code: {response.status_code}'
 
     return "Data saved successfully!!"
-
-import requests
-import json
-import base64
-
-def add_data_to_json(username, companyname, repo_url, github_token, repo_owner, repo_name):
-    # Get the existing content of the JSON file from GitHub
-
-    new_data = {
-        companyname: {
-            'username': username,
-            'repo_url': repo_url
-        }
-    }
-
-    url = f'https://api.github.com/repos/{repo_owner}/{repo_name}/contents/details.json'
-    headers = {
-        'Authorization': f'token {github_token}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
-    # response = requests.get(url, headers=headers)
-    response = requests.get(url, headers=headers)
-
-    
-    if response.status_code == 200:
-        # Decode and parse the existing JSON content
-        existing_content = json.loads(base64.b64decode(response.json()['content']).decode())
-    else:
-        print(f"Failed to retrieve existing content. Status code: {response.status_code}")
-        return
-
-    # Add the new data to the existing content
-    for key, value in new_data.items():
-        existing_content[key] = value
-
-    # Convert the updated content back to JSON string
-    updated_content = json.dumps(existing_content, indent=4)
-
-    # Encode the JSON string to base64
-    encoded_content = base64.b64encode(updated_content.encode()).decode()
-
-    # Prepare the payload for updating the file
-    payload = {
-        'message': 'Add data to details.json',
-        'content': encoded_content,
-        'sha': response.json()['sha']  # SHA of the existing file for update
-    }
-
-    # Use the GitHub API to update the content of details.json in the repository
-    response = requests.put(url, headers=headers, json=payload)
-
-    if response.status_code == 200 or response.status_code == 201:
-        print("Data added successfully to details.json.")
-    else:
-        print(f"Failed to add data to details.json. Status code: {response.status_code}")
         
 
 @app.route('/update', methods=['GET', 'POST'])
 def update():
     if request.method == "GET":
-        company_name = request.args.get('company')
-        company_details = get_company_details(company_name, REPO_OWNER, REPO_NAME, GITHUB_TOKEN)
+        company_names = request.args.get('company_name')
+        repo_names = request.args.get('repo_name')
+        file_names = request.args.get('file_name')
+        company_details = get_company_details(company_names, repo_names, file_names, REPO_OWNER, REPO_NAME, GITHUB_TOKEN)
         return render_template("update.html", company_details=company_details)
     elif request.method == "POST":
-        # Extract data from the form
-        new_data = {
-            'name': request.form.get('username'),
-            'company_name': request.form.get('companyname'),
-            'enabled': request.form.get('enabled') == 'yes',  # Convert to boolean
-            'job_type': request.form.get('job_type'),
-            'repository_url': request.form.get('repourl'),
-            'run_command': request.form.get('runcmnd'),
-            'src_path': request.form.get('srcpath'),
-            'application_port': request.form.get('applicationport'),
-            'deploy_port': request.form.get('deployport'),
-            'ssh_port_prod': request.form.get('sshportprod'),
-            'ssh_port_dev': request.form.get('sshportdev'),
-            'build_command': request.form.get('buildcommand'),
-            'pvt_deploy_servers_dev': request.form.get('pvtdeployserversdev'),
-            'deploy_servers_dev': request.form.get('deployserversdev'),
-            'pvt_deploy_servers_prod': request.form.get('pvtdeployserversprod'),
-            'deploy_servers_prod': request.form.get('deployserversprod'),
-            'deploy_env_prod': request.form.get('deployenvprod'),
-            'deploy_env_dev': request.form.get('deployenvdev'),
-            'deploy_env': request.form.get('deployenv')
-        }
-        
-        # Redirect to a success page or back to the update page
-        return redirect(url_for('update'))  # Redirect to the update page
+        try:
+            # Extract data from the form
+            new_data = {
+                'name': request.form.get('username'),
+                'company_name': request.form.get('companyname'),
+                'enabled': request.form.get('enabled') == 'yes',  # Convert to boolean
+                'job_type': request.form.get('job_type'),
+                'repository_url': request.form.get('repourl'),
+                'run_command': request.form.get('runcmnd'),
+                'src_path': request.form.get('srcpath'),
+                'application_port': request.form.get('applicationport'),
+                'deploy_port': request.form.get('deployport'),
+                'ssh_port_prod': request.form.get('sshportprod'),
+                'ssh_port_dev': request.form.get('sshportdev'),
+                'build_command': request.form.get('buildcommand'),
+                'pvt_deploy_servers_dev': request.form.get('pvtdeployserversdev'),
+                'deploy_servers_dev': request.form.get('deployserversdev'),
+                'pvt_deploy_servers_prod': request.form.get('pvtdeployserversprod'),
+                'deploy_servers_prod': request.form.get('deployserversprod'),
+                'deploy_env_prod': request.form.get('deployenvprod'),
+                'deploy_env_dev': request.form.get('deployenvdev'),
+                'deploy_env': request.form.get('deployenv')
+            }
+            
+            # Handle the form data as required
+            
+            # Redirect to a success page or back to the update page
+            return redirect(url_for('update'))  # Redirect to the update page or a success page
+        except Exception as e:
+            # Handle any exceptions that may occur during form processing
+            print(f"An error occurred: {str(e)}")
+            return render_template("error.html", error_message="An error occurred while processing the form.")
+            
     return "Updated"
 
 
@@ -333,10 +299,28 @@ def update():
 def create_user():
     return render_template("index.html")
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    company_names=get_company_names(REPO_OWNER,REPO_NAME,GITHUB_TOKEN)
-    return render_template("base.html",company_names=company_names)
+    if request.method == 'POST':
+        data = request.get_json()
+        company_names = data.get('company_name')
+        repo_names = data.get('repo_name')
+        file_names = data.get('file_name')
+        if company_names and not repo_names:
+            repo_names = fetch_repo_names(company_names, GITHUB_TOKEN)
+            return jsonify(repo_names)
+
+        if company_names and repo_names:
+            file_names = fetch_file_names(company_names, repo_names, GITHUB_TOKEN)
+            return jsonify(file_names)
+        else:
+            return jsonify({})
+    else:
+        # Handle the GET request here
+        company_names = get_company_names(REPO_OWNER, REPO_NAME, GITHUB_TOKEN)
+        return render_template("base.html", company_names=company_names)
+
+
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)

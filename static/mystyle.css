@@ -22,3 +22,11 @@
         padding: 20px;
     }
 }
+
+.reposelect{
+    display:none;
+}
+
+.fileselect{
+    display:none;
+}
