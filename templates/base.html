@@ -132,6 +132,7 @@
           .then(data => {
             fileSelect.innerHTML = "<option value=''>Select a file</option>";
             data.forEach(file => {
+              // const fileName = file.slice(0, -5);
               const option = document.createElement("option");
               option.value = file;
               option.textContent = file;
