@@ -26,7 +26,8 @@
           {% for company in company_names %}
           <option value="{{ company }}">{{ company }}</option>
           {% endfor %}
-        </select>
+      </select>
+      
       </form>
       <div class="row">
         <div class="col-md-6 text-center reposelect">
@@ -95,7 +96,7 @@
 
 
       function fetchRepoNames(company) {
-        fetch("/new", {
+        fetch("/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -120,7 +121,7 @@
       }
 
       function fetchFileNames(company, repo) {
-        fetch("/new", {
+        fetch("/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"

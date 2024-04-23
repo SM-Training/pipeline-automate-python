@@ -8,6 +8,7 @@ from collections import OrderedDict
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
+import logging
  
 load_dotenv()
  
@@ -22,13 +23,7 @@ users_collection = db['Users']
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPO_OWNER = os.getenv("REPO_OWNER")
 REPO_NAME = os.getenv("REPO_NAME")
- 
-# # Routes for adding and updating data
-# # (The functions for these routes are defined earlier in the script)
- 
-# if __name__ == "__main__":
-#     app.run(debug=True, host='0.0.0.0', port=5000)
- 
+
  
 ip_request_counts = {}
  
@@ -343,9 +338,13 @@ def update():
 @app.route('/create')
 def create_user():
     return render_template("index.html")
- 
-@app.route('/new', methods=['GET', 'POST'])
+   
+
+@app.route('/', methods=['GET', 'POST'])
 def new_index():
+    if 'username' not in session:
+        # If user is not logged in, redirect to login page
+        return redirect(url_for('login'))
     if request.method == 'POST':
         data = request.get_json()
         company_names = data.get('company_name')
@@ -361,17 +360,20 @@ def new_index():
         else:
             return jsonify({})
     else:
-        # Handle the GET request here
-        company_names = get_company_names(REPO_OWNER, REPO_NAME, GITHUB_TOKEN)
-        return render_template("base.html", company_names=company_names)
+        try:
+            # Handle the GET request here
+            company_names = get_company_names(REPO_OWNER, REPO_NAME, GITHUB_TOKEN)
 
+            # Log company names
+            logging.info(f"Company names: {company_names}")
 
-@app.route('/', methods=['GET'])
-def hello_world():
-    if 'username' not in session:
-        # If user is not logged in, redirect to login page
-        return redirect(url_for('login'))
-    return render_template("base.html", github_username=REPO_OWNER)
+            return render_template("base.html", company_names=company_names) 
+        except Exception as e:
+            # Log any exceptions
+            logging.error(f"An error occurred: {str(e)}")
+            return "An error occurred"
+    # company_names = get_company_names(REPO_OWNER, REPO_NAME, GITHUB_TOKEN)
+    # return render_template('base.html',company_names=company_names)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -381,7 +383,7 @@ def login():
         # Validate username (you might want to add more validation)
         if username:
             session['username'] = username
-            return redirect(url_for('hello_world'))
+            return redirect('/')
         else:
             # Handle invalid login attempt
             return render_template('login.html', error='Invalid username')
@@ -412,6 +414,18 @@ def signup():
         return redirect(url_for('login'))  # Redirect to login page after successful signup
 
     return render_template('sign_up.html')
+
+@app.route('/logout')
+def logout():
+    # Clear the session
+    session.pop('username', None)
+    session.pop('logged_in', None)
+    # Redirect to the logout page
+    return redirect(url_for('logout_page'))
+
+@app.route('/logout_page')
+def logout_page():
+    return render_template('logout.html')
 
 
 if __name__ == "__main__":
