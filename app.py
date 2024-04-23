@@ -402,7 +402,7 @@ def signup():
         # Check if the username already exists
         if users_collection.find_one({'username': username}):
             error_message = 'Username already exists. Please choose a different username.'
-            return render_template('signup.html', error=error_message)
+            return render_template('sign_up.html', error=error_message)
 
         # Hash the password before storing it
         hashed_password = generate_password_hash(password)
