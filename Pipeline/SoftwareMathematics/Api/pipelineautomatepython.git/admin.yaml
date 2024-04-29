@@ -16,4 +16,4 @@ pvt_deploy_servers_prod: -34
 deploy_servers_prod: -34
 deploy_env_prod: 34
 deploy_env_dev: https://redketchup.io/colorpicker
-deploy_env: -dev,prod
+deploy_env: -dev -prod
