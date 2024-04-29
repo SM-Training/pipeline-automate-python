@@ -23,6 +23,7 @@
       <h2>Edit Existing pipeline</h2>
       <form id="companyForm">
         <select class="form-select" id="companySelect" name="company_name">
+          <option value="">Select Job_type</option>
           {% for company in company_names %}
           <option value="{{ company }}">{{ company }}</option>
           {% endfor %}
