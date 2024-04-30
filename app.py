@@ -237,7 +237,20 @@ def add_form():
         }  
  
         data = OrderedDict((key, data[key]) for key in field_order if key in data)
-        
+
+
+        old_username = request.form.get('old_username')
+
+        # If old username is not None and is different from the new username
+        if old_username and old_username != username:
+            old_filename = f"{old_username}.yaml"
+            new_filename = f"{username}.yaml"
+
+            # Check if the old file exists
+            if os.path.exists(old_filename):
+                # Rename the file
+                os.rename(old_filename, new_filename)
+                print(f"File '{old_filename}' has been renamed to '{new_filename}'.")
  
         formatted_yaml = ''
         for field in field_order:
