@@ -237,20 +237,6 @@ def add_form():
         }  
  
         data = OrderedDict((key, data[key]) for key in field_order if key in data)
-
-
-        old_username = request.form.get('old_username')
-
-        # If old username is not None and is different from the new username
-        if old_username and old_username != username:
-            old_filename = f"{old_username}.yaml"
-            new_filename = f"{username}.yaml"
-
-            # Check if the old file exists
-            if os.path.exists(old_filename):
-                # Rename the file
-                os.rename(old_filename, new_filename)
-                print(f"File '{old_filename}' has been renamed to '{new_filename}'.")
  
         formatted_yaml = ''
         for field in field_order:
@@ -336,9 +322,23 @@ def update():
                 'deploy_env_dev': request.form.get('deployenvdev'),
                 'deploy_env': request.form.get('deployenv')
             }
-           
-            # Handle the form data as required
-           
+
+            
+         # Handle the form data as required
+            new_username = request.form.get('new_username')
+            old_username = request.form.get('old_username')
+
+            # If old username is not None and is different from the new username
+            if old_username and old_username != new_username:
+                old_filename = f"{old_username}.yaml"
+                new_filename = f"{new_username}.yaml"
+
+                # Check if the old file exists
+            if os.path.exists(old_filename):
+                    # Rename the file
+                os.rename(old_filename, new_filename)
+                print(f"File '{old_filename}' has been renamed to '{new_filename}'.")
+
             # Redirect to a success page or back to the update page
             return redirect(url_for('update'))  # Redirect to the update page or a success page
         except Exception as e:
