@@ -4,9 +4,9 @@ repository url: SM mathematics.git
 enabled: yes
 job_type: software
 run_command: java Xmx256m jar app.jar
-src_path: myservice
+src_path: qqqqqq
 application_port: 666
-deploy_port: 213
+deploy_port: 45
 ssh_port_prod: 2232
 ssh_port_dev: 22
 build_command: mvn clean install DskipTests s $MAVEN_SETTING
