@@ -237,6 +237,7 @@ def add_form():
         }  
  
         data = OrderedDict((key, data[key]) for key in field_order if key in data)
+        
  
         formatted_yaml = ''
         for field in field_order:
