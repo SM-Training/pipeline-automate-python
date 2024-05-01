@@ -23,6 +23,7 @@
       <h2>Edit Existing pipeline</h2>
       <form id="companyForm">
         <select class="form-select" id="companySelect" name="company_name">
+          <option value="">Select Job_type</option>
           {% for company in company_names %}
           <option value="{{ company }}">{{ company }}</option>
           {% endfor %}
@@ -31,7 +32,6 @@
       </form>
       <div class="row">
         <div class="col-md-6 text-center reposelect">
-          <!-- <h2>Select Repository</h2> -->
           <form id="repoForm">
             <div class="mb-3">
               <label for="repoSelect" class="form-label">Select Repsository</label>
