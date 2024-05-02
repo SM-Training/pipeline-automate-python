@@ -1,5 +1,6 @@
 import inspect
 import time
+import traceback
 from flask import Flask, jsonify, render_template, request, redirect, session, url_for
 import requests
 import yaml
@@ -216,71 +217,202 @@ def get_company_details(company_name, repo_name, file_name, REPO_OWNER, REPO_NAM
     return company_details
 
 
-# @app.route('/update', methods=['GET', 'POST'])
-# def update():
-#     if request.method == "GET":
-#         company_names = request.args.get('company_name')
-#         repo_names = request.args.get('repo_name')
-#         file_names = request.args.get('file_name')
-#         company_details = get_company_details(company_names, repo_names, file_names, REPO_OWNER, REPO_NAME,
-#                                               GITHUB_TOKEN)
-#         return render_template("update.html", company_details=company_details)
-#     elif request.method == "POST":
-#         try:
-#             # Extract data from the form
-#             new_data = {
-#                 'name': request.form.get('username'),
-#                 'company_name': request.form.get('companyname'),
-#                 'enabled': request.form.get('enabled') == 'yes',  # Convert to boolean
-#                 'job_type': request.form.get('job_type'),
-#                 'repository url': request.form.get('repourl'),
-#                 'run_command': request.form.get('runcmnd'),
-#                 'src_path': request.form.get('srcpath'),
-#                 'application_port': request.form.get('applicationport'),
-#                 'deploy_port': request.form.get('deployport'),
-#                 'ssh_port_prod': request.form.get('sshportprod'),
-#                 'ssh_port_dev': request.form.get('sshportdev'),
-#                 'build_command': request.form.get('buildcommand'),
-#                 'pvt_deploy_servers_dev': request.form.get('pvtdeployserversdev'),
-#                 'deploy_servers_dev': request.form.get('deployserversdev'),
-#                 'pvt_deploy_servers_prod': request.form.get('pvtdeployserversprod'),
-#                 'deploy_servers_prod': request.form.get('deployserversprod'),
-#                 'deploy_env_prod': request.form.get('deployenvprod'),
-#                 'deploy_env_dev': request.form.get('deployenvdev'),
-#                 'deploy_env': request.form.get('deployenv')
-#             }
+@app.route('/add', methods=['GET', 'POST'])
+def add_form():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        companyname = request.form.get('companyname')
+        repo_url = request.form.get('repourl')
+        enabled = request.form.get('enabled')
+        job_type = request.form.get('job_type')
+        run_command = request.form.get('runcmnd')
+        src_path = request.form.get('srcpath')
+        application_port = request.form.get('applicationport')
+        deploy_port = request.form.get('deployport')
+        ssh_port_prod = request.form.get('sshportprod')
+        ssh_port_dev = request.form.get('sshportdev')
+        build_command = request.form.get('buildcommand')
+        pvt_deploy_servers_dev = request.form.get('pvtdeployserversdev')
+        deploy_servers_dev = request.form.get('deployserversdev')
+        pvt_deploy_servers_prod = request.form.get('pvtdeployserversprod')
+        deploy_servers_prod = request.form.get('deployserversprod')
+        deploy_env_prod = request.form.get('deployenvprod')
+        deploy_env_dev = request.form.get('deployenvdev')
+        deploy_env = request.form.get('deployenv')
 
-#             # If old username is not None and is different from the new username
-#             new_username = request.form.get('username')
-#             old_username = request.form.get('old_username')
-#             company_name = request.form.get('companyname')
+        # Assuming pvt_deploy_servers_dev is a string containing IP addresses separated by spaces
+        pvt_deploy_servers_dev_list = ' '.join(
+            ['-' + ip for ip in filter(None, pvt_deploy_servers_dev.split())]) if pvt_deploy_servers_dev else ''
+        deploy_servers_prod_list = ' '.join(
+            ['-' + ip for ip in filter(None, deploy_servers_prod.split())]) if deploy_servers_prod else ''
+        pvt_deploy_servers_prod_list = ' '.join(
+            ['-' + ip for ip in filter(None, pvt_deploy_servers_prod.split())]) if pvt_deploy_servers_prod else ''
+        deploy_servers_dev_list = ' '.join(
+            ['-' + ip for ip in filter(None, deploy_servers_dev.split())]) if deploy_servers_dev else ''
+        deploy_env_list = ' '.join(['-' + ip for ip in filter(None, deploy_env.split())]) if deploy_env else ''
 
-#             repo_parts = new_data["repository url"].split('/')
-#             repo_name = repo_parts[-1]
 
-#             # If username or repository URL is changed
-#             if old_username != new_username:
-#                 # Delete existing repository YAML file
-#                 delete_file_from_github(company_name, repo_name, old_username + '.yaml', GITHUB_TOKEN)
+        # Define the order of fields
+        field_order = [
+            "name",
+            "company name",
+            "repository url",
+            "enabled",
+            "job_type",
+            "run_command",
+            "src_path",
+            "application_port",
+            "deploy_port",
+            "ssh_port_prod",
+            "ssh_port_dev",
+            "build_command",
+            "pvt_deploy_servers_dev",
+            "deploy_servers_dev",
+            "pvt_deploy_servers_prod",
+            "deploy_servers_prod",
+            "deploy_env_prod",
+            "deploy_env_dev",
+            "deploy_env"
+        ]
+        data = {
+            "name": username,
+            "company name": companyname,
+            "repository url": repo_url,
+            "enabled": enabled,
+            "job_type": job_type,
+            "run_command": run_command,
+            "src_path": src_path,
+            "application_port": application_port,
+            "deploy_port": deploy_port,
+            "ssh_port_prod": ssh_port_prod,
+            "ssh_port_dev": ssh_port_dev,
+            "build_command": build_command,
+            "pvt_deploy_servers_dev": pvt_deploy_servers_dev_list,
+            "deploy_servers_dev": deploy_servers_dev_list,
+            "pvt_deploy_servers_prod": pvt_deploy_servers_prod_list,
+            "deploy_servers_prod": deploy_servers_prod_list,
+            "deploy_env_prod": deploy_env_prod,
+            "deploy_env_dev": deploy_env_dev,
+            "deploy_env": deploy_env_list
+        }
 
-#                 # Save the updated file to GitHub with the new username
-#                 new_data['name'] = new_username
-#                 save_to_github(new_data)
+        data = OrderedDict((key, data[key]) for key in field_order if key in data)
 
-#                 # Redirect to the update page or a success page
-#                 return redirect(url_for('update'))  # Redirect to the update page or a success page
-#             else:
-#                 # Save the updated file to GitHub with the same username
-#                 save_to_github(new_data)
+        formatted_yaml = ''
+        for field in field_order:
+            if field in data:
+                value = data[field]
+                if isinstance(value, list):
+                    value = yaml.dump(value, default_flow_style=False).strip()
+                formatted_yaml += f"{field}: {value}\n"
+            else:
+                formatted_yaml += f"{field}: null\n"
 
-#                 # Redirect to a success page or back to the update page
-#                 return redirect(url_for('update'))  # Redirect to the update page or a success page
-#         except Exception as e:
-#             # Handle any exceptions that may occur during form processing
-#             print(f"An error occurred at line {inspect.currentframe().f_lineno}: {str(e)}")
-#             return render_template("error.html", error_message="An error occurred while processing the form.")
+        file_content_base64 = base64.b64encode(formatted_yaml.encode()).decode()
 
-#     return "Updated"
+        repo_parts = data["repository url"].split('/')
+        repo_name = repo_parts[-1]
+
+        file_name = f'{data["name"]}.yaml'
+        file_path = f'Pipeline/SoftwareMathematics/{data["company name"]}/{repo_name}/{file_name}'
+
+        url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
+
+        headers = {
+            'Authorization': f'token {GITHUB_TOKEN}',
+            'Accept': 'application/vnd.github.v3+json'
+        }
+        
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            # File already exists, update its content
+            existing_file = response.json()
+            payload = {
+                'message': 'Update file',
+                'content': file_content_base64,
+                'sha': existing_file['sha']  # SHA of the existing file for update
+            }
+            response = requests.put(url, headers=headers, json=payload)
+        elif response.status_code == 404:
+            # File does not exist, create a new file
+            payload = {
+                'message': 'Create file',
+                'content': file_content_base64
+            }
+            response = requests.put(url, headers=headers, json=payload)
+
+        if response.status_code == 201 or response.status_code == 200:
+            return 'File saved successfully to GitHub.'
+        else:
+            return f'Failed to save file to GitHub. Status code: {response.status_code}'
+
+    return "Data saved successfully!!"
+
+
+@app.route('/update', methods=['GET', 'POST'])
+def update():
+    if request.method == "GET":
+        company_names = request.args.get('company_name')
+        repo_names = request.args.get('repo_name')
+        file_names = request.args.get('file_name')
+        company_details = get_company_details(company_names, repo_names, file_names, REPO_OWNER, REPO_NAME,
+                                              GITHUB_TOKEN)
+        return render_template("update.html", company_details=company_details)
+    
+    elif request.method == "POST":
+        try:
+            # Extract data from the form
+            new_data = {
+                'name': request.form.get('username'),
+                'company_name': request.form.get('companyname'),
+                'enabled': request.form.get('enabled') == 'yes',  # Convert to boolean
+                'job_type': request.form.get('job_type'),
+                'repository url': request.form.get('repourl'),
+                'run_command': request.form.get('runcmnd'),
+                'src_path': request.form.get('srcpath'),
+                'application_port': request.form.get('applicationport'),
+                'deploy_port': request.form.get('deployport'),
+                'ssh_port_prod': request.form.get('sshportprod'),
+                'ssh_port_dev': request.form.get('sshportdev'),
+                'build_command': request.form.get('buildcommand'),
+                'pvt_deploy_servers_dev': request.form.get('pvtdeployserversdev'),
+                'deploy_servers_dev': request.form.get('deployserversdev'),
+                'pvt_deploy_servers_prod': request.form.get('pvtdeployserversprod'),
+                'deploy_servers_prod': request.form.get('deployserversprod'),
+                'deploy_env_prod': request.form.get('deployenvprod'),
+                'deploy_env_dev': request.form.get('deployenvdev'),
+                'deploy_env': request.form.get('deployenv')
+            }
+
+            # If old username is not None and is different from the new username
+            new_username = request.form.get('username')
+            old_username = request.form.get('old_username')
+            company_name = request.form.get('companyname')
+
+            repo_parts = new_data["repository url"].split('/')
+            repo_name = repo_parts[-1]
+
+            # If username or repository URL is changed
+            if old_username != new_username:
+                delete_file_from_github(company_name, repo_name, old_username + '.yaml', GITHUB_TOKEN)
+
+                # Save the updated file to GitHub with the new username
+                new_data['name'] = new_username
+                save_to_github(new_data)
+
+                return redirect(url_for('update'))  
+            
+            else:
+                save_to_github(new_data)
+                return redirect(url_for('update')) 
+
+        except Exception as e:
+            error_message = traceback.format_exc()  # Get the full traceback as a string
+            print(f"An error occurred at line {inspect.currentframe().f_lineno}: {error_message}")
+            return render_template("error.html", error_message=error_message)
+
+    return "Updated"
 
 def format_ip_addresses(ip_string):
     if not ip_string:
@@ -294,7 +426,7 @@ def format_ip_addresses(ip_string):
 
 def save_to_github(data):
     field_order = [
-        "name", "company name", "repository url", "enabled", "job_type", "run_command",
+        "name", "company_name", "repository url", "enabled", "job_type", "run_command",
         "src_path", "application_port", "deploy_port", "ssh_port_prod", "ssh_port_dev",
         "build_command", "pvt_deploy_servers_dev", "deploy_servers_dev",
         "pvt_deploy_servers_prod", "deploy_servers_prod", "deploy_env_prod",
@@ -316,7 +448,7 @@ def save_to_github(data):
     repo_parts = data["repository url"].split('/')
     repo_name = repo_parts[-1]
     file_name = f'{data["name"]}.yaml'
-    file_path = f'Pipeline/SoftwareMathematics/{data["company name"]}/{repo_name}/{file_name}'
+    file_path = f'Pipeline/SoftwareMathematics/{data["company_name"]}/{repo_name}/{file_name}'
 
     # Construct the GitHub API URL
     url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
@@ -354,38 +486,38 @@ def save_to_github(data):
         return f'Failed to save file to GitHub. Status code: {response.status_code}'
 
 
-@app.route('/add', methods=['GET', 'POST'])
-def add_form():
-    if request.method == 'POST':
-        # Extract data from the form
-        data = {
-            "name": request.form.get('username'),
-            "company name": request.form.get('companyname'),
-            "repository url": request.form.get('repourl'),
-            "enabled": request.form.get('enabled'),
-            "job_type": request.form.get('job_type'),
-            "run_command": request.form.get('runcmnd'),
-            "src_path": request.form.get('srcpath'),
-            "application_port": request.form.get('applicationport'),
-            "deploy_port": request.form.get('deployport'),
-            "ssh_port_prod": request.form.get('sshportprod'),
-            "ssh_port_dev": request.form.get('sshportdev'),
-            "build_command": request.form.get('buildcommand'),
-            "pvt_deploy_servers_dev": format_ip_addresses(request.form.get('pvtdeployserversdev')),
-            "deploy_servers_dev": format_ip_addresses(request.form.get('deployserversdev')),
-            "pvt_deploy_servers_prod": format_ip_addresses(request.form.get('pvtdeployserversprod')),
-            "deploy_servers_prod": format_ip_addresses(request.form.get('deployserversprod')),
-            "deploy_env_prod": request.form.get('deployenvprod'),
-            "deploy_env_dev": request.form.get('deployenvdev'),
-            "deploy_env": request.form.get('deployenv')
-        }
+# @app.route('/add', methods=['GET', 'POST'])
+# def add_form():
+#     if request.method == 'POST':
+#         # Extract data from the form
+#         data = {
+#             "name": request.form.get('username'),
+#             "company name": request.form.get('companyname'),
+#             "repository url": request.form.get('repourl'),
+#             "enabled": request.form.get('enabled'),
+#             "job_type": request.form.get('job_type'),
+#             "run_command": request.form.get('runcmnd'),
+#             "src_path": request.form.get('srcpath'),
+#             "application_port": request.form.get('applicationport'),
+#             "deploy_port": request.form.get('deployport'),
+#             "ssh_port_prod": request.form.get('sshportprod'),
+#             "ssh_port_dev": request.form.get('sshportdev'),
+#             "build_command": request.form.get('buildcommand'),
+#             "pvt_deploy_servers_dev": format_ip_addresses(request.form.get('pvtdeployserversdev')),
+#             "deploy_servers_dev": format_ip_addresses(request.form.get('deployserversdev')),
+#             "pvt_deploy_servers_prod": format_ip_addresses(request.form.get('pvtdeployserversprod')),
+#             "deploy_servers_prod": format_ip_addresses(request.form.get('deployserversprod')),
+#             "deploy_env_prod": request.form.get('deployenvprod'),
+#             "deploy_env_dev": request.form.get('deployenvdev'),
+#             "deploy_env": request.form.get('deployenv')
+#         }
 
-        # Save data to GitHub
-        result = save_to_github(data)
+#         # Save data to GitHub
+#         result = save_to_github(data)
 
-        return result
+#         return result
 
-    return "Data saved successfully!!"
+#     return "Data saved successfully!!"
 
 
 @app.route('/create')

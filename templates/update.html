@@ -29,9 +29,9 @@
             <div class="mb-3">
               <label for="jobTypeSelect" class="form-label">Company Name<span class="text-danger">*</span></label>
               <select class="form-select" id="jobTypeSelect" name="companyname" required>
-                <option value="Api" {% if company_details['company_name']=='Api' %}selected{% endif %}>Api</option>
-                <option value="Ui" {% if company_details['company_name']=='Ui' %}selected{% endif %}>Ui</option>
-                <option value="Custom" {% if company_details['company_name']=='Custom' %}selected{% endif %}>Custom
+                <option value="Api" {{ 'selected' if company_details['company_name']=='Api' else '' }}>Api</option>
+                <option value="Ui" {{ 'selected' if company_details['company_name']=='Ui' else '' }}>Ui</option>
+                <option value="Custom"{{ 'selected' if company_details['company_name']=='Custom' else '' }}>Custom
                 </option>
               </select>
             </div>
