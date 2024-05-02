@@ -1,4 +1,4 @@
-import shutil
+import inspect
 import time
 from flask import Flask, jsonify, render_template, request, redirect, session, url_for
 import requests
@@ -64,20 +64,17 @@ import logging
 import requests
 import logging
 
-def delete_file_from_github(company_name,repo_name,file_name,github_token):
-
-     
+def delete_file_from_github(company_name, repo_name, file_name, github_token):
+    # Construct the file path
     file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{file_name}'
-    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
 
-    print(url)
+    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
 
     headers = {
         'Authorization': f'token {github_token}',
         'Accept': 'application/vnd.github.v3+json'
     }
 
-    # Fetch the file's current content and SHA hash
     try:
         response = requests.get(url, headers=headers)
         response.raise_for_status()  # Raise an exception for non-200 status codes
@@ -87,8 +84,8 @@ def delete_file_from_github(company_name,repo_name,file_name,github_token):
 
         # Prepare the deletion request payload
         payload = {
-            'message': 'Delete file',  # Provide a descriptive message for the deletion
-            'sha': sha  # Include the SHA hash of the file's current content
+            'message': 'Delete file',
+            'sha': sha
         }
 
         response = requests.delete(url, headers=headers, json=payload)
@@ -103,15 +100,6 @@ def delete_file_from_github(company_name,repo_name,file_name,github_token):
         return False
 
     return True
-
-# file_path = 'Api/SM%20mathematics/Shreya.yaml'
-
-if delete_file_from_github('Api','SM mathematics.git','Shreya.yaml', GITHUB_TOKEN):
-    print(f"File deleted successfully.")
-else:
-    print(f"Failed to delete file ")
-
-
 
  
 def fetch_file_names(company_name,repo_name, access_token):
@@ -348,6 +336,10 @@ def add_form():
             return f'Failed to save file to GitHub. Status code: {response.status_code}'
 
     return "Data saved successfully!!"
+
+
+from flask import jsonify, redirect, url_for
+
 @app.route('/update', methods=['GET', 'POST'])
 def update():
     if request.method == "GET":
@@ -360,12 +352,18 @@ def update():
     elif request.method == "POST":
         try:
             # Extract data from the form
+            new_username = request.form.get('username')
+            old_username = request.form.get('old_username')
+            company_name = request.form.get('companyname')
+            repo_url = request.form.get('repourl')
+
+            # Retrieve all data before deleting the file
             new_data = {
-                'name': request.form.get('username'),
-                'company_name': request.form.get('companyname'),
+                'name': new_username,
+                'company_name': company_name,
                 'enabled': request.form.get('enabled') == 'yes',  # Convert to boolean
                 'job_type': request.form.get('job_type'),
-                'repository_url': request.form.get('repourl'),
+                'repository url': repo_url,
                 'run_command': request.form.get('runcmnd'),
                 'src_path': request.form.get('srcpath'),
                 'application_port': request.form.get('applicationport'),
@@ -382,52 +380,104 @@ def update():
                 'deploy_env': request.form.get('deployenv')
             }
 
-            
-        #  # Handle the form data as required
-        #     new_username = request.form.get('new_username')
-        #     old_username = request.form.get('old_username')
+            repo_parts = repo_url.split('/')
+            repo_name = repo_parts[-1]
 
             # If old username is not None and is different from the new username
-                 # Handle the form data as required
-            # new_username = request.form.get('new_username')
-            # old_username = request.form.get('old_username')
-            # new_repo_url = request.form.get('new_repo_url')
-            # old_repo_url = request.form.get('old_repo_url')
+            if old_username != new_username:
+                # Delete existing repository YAML file
+                delete_file_from_github(company_name, repo_name, old_username + '.yaml', GITHUB_TOKEN)
 
-            # repo_parts = new_data["repository url"].split('/')
-            # repo_name = repo_parts[-1]
+                # Save the updated file to GitHub with the new username
+                new_data['name'] = new_username
+                save_to_github(new_data)
 
-            # # If username is changed
-            # if old_username != new_username:
-            #     # Delete existing repository YAML file
-            #     file_path = f'Pipeline/SoftwareMathematics/{repo_name}/{old_username}.yaml'
-            #     delete_file_from_github(old_username,file_path,GITHUB_TOKEN)
+                # Redirect to the update page or a success page
+                return redirect(url_for('update'))  # Redirect to the update page or a success page
+            else:
+                # Save the updated file to GitHub with the same username
+                save_to_github(new_data)
 
-            # # If repository URL is changed
-            # if old_repo_url != new_repo_url:
-            #     # Delete existing repository folder
-            #     folder_path = f'Pipeline/SoftwareMathematics/SM mathematics/{old_username}'
-            #     if os.path.exists(folder_path):
-            #         shutil.rmtree(folder_path)
-            #         print(f"Deleted folder: {folder_path}")
-
-
-            # Redirect to a success page or back to the update page
-            return redirect(url_for('update'))  # Redirect to the update page or a success page
+                # Redirect to a success page or back to the update page
+                return redirect(url_for('update'))  # Redirect to the update page or a success page
         except Exception as e:
             # Handle any exceptions that may occur during form processing
-            print(f"An error occurred: {str(e)}")
-            return render_template("error.html", error_message="An error occurred while processing the form.")
-
-            # Redirect to a success page or back to the update page
-            return redirect(url_for('update'))  # Redirect to the update page or a success page
-        except Exception as e:
-            # Handle any exceptions that may occur during form processing
-            print(f"An error occurred: {str(e)}")
+            print(f"An error occurred at line {inspect.currentframe().f_lineno}: {str(e)}")
             return render_template("error.html", error_message="An error occurred while processing the form.")
 
     return "Updated"
 
+def save_to_github(data):
+    # Define the order of fields
+    field_order = [
+        "name",
+        "company name",
+        "repository url",
+        "enabled",
+        "job_type",
+        "run_command",
+        "src_path",
+        "application_port",
+        "deploy_port",
+        "ssh_port_prod",
+        "ssh_port_dev",
+        "build_command",
+        "pvt_deploy_servers_dev",
+        "deploy_servers_dev",
+        "pvt_deploy_servers_prod",
+        "deploy_servers_prod",
+        "deploy_env_prod",
+        "deploy_env_dev",
+        "deploy_env"
+    ]
+    formatted_yaml = ''
+    for field in field_order:
+        if field in data:
+            value = data[field]
+            if isinstance(value, list):
+                value = yaml.dump(value, default_flow_style=False).strip()
+            formatted_yaml += f"{field}: {value}\n"
+        else:
+            formatted_yaml += f"{field}: null\n"
+
+    file_content_base64 = base64.b64encode(formatted_yaml.encode()).decode()
+
+    repo_parts = data["repository url"].split('/')
+    repo_name = repo_parts[-1]
+
+    file_name = f'{data["name"]}.yaml'
+    file_path = f'Pipeline/SoftwareMathematics/{data["company name"]}/{repo_name}/{file_name}'
+
+    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
+
+    headers = {
+        'Authorization': f'token {GITHUB_TOKEN}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 200:
+        # File already exists, update its content
+        existing_file = response.json()
+        payload = {
+            'message': 'Update file',
+            'content': file_content_base64,
+            'sha': existing_file['sha']  # SHA of the existing file for update
+        }
+        response = requests.put(url, headers=headers, json=payload)
+    elif response.status_code == 404:
+        # File does not exist, create a new file
+        payload = {
+            'message': 'Create file',
+            'content': file_content_base64
+        }
+        response = requests.put(url, headers=headers, json=payload)
+
+    if response.status_code == 201 or response.status_code == 200:
+        return 'File saved successfully to GitHub.'
+    else:
+        return f'Failed to save file to GitHub. Status code: {response.status_code}'
 
 @app.route('/create')
 def create_user():
