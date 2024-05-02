@@ -376,6 +376,8 @@ def new_index():
     # return render_template('base.html',company_names=company_names)
 
 
+
+# Login authentication function
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
