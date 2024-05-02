@@ -1,3 +1,4 @@
+import shutil
 import time
 from flask import Flask, jsonify, render_template, request, redirect, session, url_for
 import requests
@@ -24,6 +25,7 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPO_OWNER = os.getenv("REPO_OWNER")
 REPO_NAME = os.getenv("REPO_NAME")
 
+ 
 ip_request_counts = {}
 
 
@@ -53,9 +55,66 @@ def check_rate_limit(response):
     else:
         # If response does not contain headers, return default values
         return 0, 0
+ 
+ 
+ 
+ # Function to delete a file from GitHub repository
+import logging
+
+import requests
+import logging
+
+def delete_file_from_github(company_name,repo_name,file_name,github_token):
+
+     
+    file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{file_name}'
+    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
+
+    print(url)
+
+    headers = {
+        'Authorization': f'token {github_token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+
+    # Fetch the file's current content and SHA hash
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Raise an exception for non-200 status codes
+
+        file_data = response.json()
+        sha = file_data.get('sha')
+
+        # Prepare the deletion request payload
+        payload = {
+            'message': 'Delete file',  # Provide a descriptive message for the deletion
+            'sha': sha  # Include the SHA hash of the file's current content
+        }
+
+        response = requests.delete(url, headers=headers, json=payload)
+        response.raise_for_status()  # Raise an exception for non-200 status codes
+
+        if response.status_code == 200:
+            logging.info(f"File '{file_path}' deleted successfully from the GitHub repository.")
+        else:
+            logging.error(f"Failed to delete file '{file_path}' from the GitHub repository. Status code: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"An error occurred while deleting file '{file_path}': {e}")
+        return False
+
+    return True
+
+# file_path = 'Api/SM%20mathematics/Shreya.yaml'
+
+if delete_file_from_github('Api','SM mathematics.git','Shreya.yaml', GITHUB_TOKEN):
+    print(f"File deleted successfully.")
+else:
+    print(f"Failed to delete file ")
 
 
-def fetch_file_names(company_name, repo_name, access_token):
+
+ 
+def fetch_file_names(company_name,repo_name, access_token):
     file_names = []
 
     target_url = (f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/Pipeline/SoftwareMathematics/'
@@ -323,7 +382,42 @@ def update():
                 'deploy_env': request.form.get('deployenv')
             }
 
-            # Handle the form data as required
+            
+        #  # Handle the form data as required
+        #     new_username = request.form.get('new_username')
+        #     old_username = request.form.get('old_username')
+
+            # If old username is not None and is different from the new username
+                 # Handle the form data as required
+            # new_username = request.form.get('new_username')
+            # old_username = request.form.get('old_username')
+            # new_repo_url = request.form.get('new_repo_url')
+            # old_repo_url = request.form.get('old_repo_url')
+
+            # repo_parts = new_data["repository url"].split('/')
+            # repo_name = repo_parts[-1]
+
+            # # If username is changed
+            # if old_username != new_username:
+            #     # Delete existing repository YAML file
+            #     file_path = f'Pipeline/SoftwareMathematics/{repo_name}/{old_username}.yaml'
+            #     delete_file_from_github(old_username,file_path,GITHUB_TOKEN)
+
+            # # If repository URL is changed
+            # if old_repo_url != new_repo_url:
+            #     # Delete existing repository folder
+            #     folder_path = f'Pipeline/SoftwareMathematics/SM mathematics/{old_username}'
+            #     if os.path.exists(folder_path):
+            #         shutil.rmtree(folder_path)
+            #         print(f"Deleted folder: {folder_path}")
+
+
+            # Redirect to a success page or back to the update page
+            return redirect(url_for('update'))  # Redirect to the update page or a success page
+        except Exception as e:
+            # Handle any exceptions that may occur during form processing
+            print(f"An error occurred: {str(e)}")
+            return render_template("error.html", error_message="An error occurred while processing the form.")
 
             # Redirect to a success page or back to the update page
             return redirect(url_for('update'))  # Redirect to the update page or a success page
