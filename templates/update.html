@@ -84,6 +84,8 @@
                   class="text-danger">*</span></label>
               <input type="text" name="repourl" class="form-control" placeholder="repo_url"
                 value="{{ company_details['repository url'] }}" required>
+                  <!-- Hidden input field for old_username -->
+          <input name="old_repo_url" id="old_username" value="{{ company_details['repository url'] }}">
             </div>
           </div>
         </div>
@@ -288,6 +290,26 @@
               initialUsername = newUsername;
             });
           });
+
+          $(document).ready(function () {
+    // Get the initial value of the repo_url field
+    var initialRepoUrl = $('#repo_url').val();
+
+    // Whenever the repo_url field changes
+    $('#repo_url').on('input', function () {
+      // Get the new value of the repo_url field
+      var newRepoUrl = $(this).val();
+
+      // Update the value of the hidden input field for old_repo_url
+      $('#old_repo_url').val(initialRepoUrl);
+
+      // Update the value of the hidden input field for new_repo_url
+      $('#new_repo_url').val(newRepoUrl);
+
+      // Update the initialRepoUrl variable with the new value
+      initialRepoUrl = newRepoUrl;
+    });
+  });
 
 
         </script>

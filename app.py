@@ -15,9 +15,6 @@ import logging
 load_dotenv()
 
 
-print(inspect.version)
-
-
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Secret key for session
 
@@ -64,6 +61,7 @@ def check_rate_limit(response):
 
 
 def delete_file_from_github(company_name,repo_name,file_name,github_token):
+
     file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{file_name}'
     url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
 
@@ -99,6 +97,57 @@ def delete_file_from_github(company_name,repo_name,file_name,github_token):
     return True
 
 
+def delete_folder_from_github(company_name, repo_name, github_token):
+    file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}'
+    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
+
+    print(url)
+    print(file_path)
+
+    headers = {
+        'Authorization': f'token {github_token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+
+    try:
+        # Fetch the folder's contents
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Raise an exception for non-200 status codes
+
+        folder_contents = response.json()
+
+        # Iterate through folder contents to find the file metadata for the folder
+        for file_data in folder_contents:
+            if file_data['type'] == 'dir' and file_data['path'] == file_path:
+                sha = file_data['sha']  # Get the SHA of the folder
+                break
+        else:
+            logging.error(f"Folder '{file_path}' not found in the GitHub repository.")
+            return False
+
+        # Prepare the deletion request payload
+        payload = {
+            'message': 'Delete folder',  # Provide a descriptive message for the deletion
+            'sha': sha  # Include the SHA hash of the folder
+        }
+
+        # Send the deletion request
+        response = requests.delete(url, headers=headers, json=payload)
+        response.raise_for_status()  # Raise an exception for non-200 status codes
+
+        if response.status_code == 200:
+            logging.info(f"Folder '{file_path}' deleted successfully from the GitHub repository.")
+            return True
+        else:
+            logging.error(f"Failed to delete folder '{file_path}'. Status code: {response.status_code}. Error: {response.json()['message']}")
+            return False
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"An error occurred while deleting folder '{file_path}': {e}")
+        return False
+
+
+print(delete_folder_from_github('Custom', 'SM.git', GITHUB_TOKEN))
 
  
 def fetch_file_names(company_name,repo_name, access_token):
@@ -203,8 +252,6 @@ def get_company_details(company_name, repo_name, file_name, REPO_OWNER, REPO_NAM
     else:
         print(f"Failed to fetch YAML content. Status code: {response.status_code}")
     return company_details
-
-print(get_company_details('Custom','SM.git','T.yaml',REPO_OWNER,REPO_NAME,GITHUB_TOKEN))
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_form():
