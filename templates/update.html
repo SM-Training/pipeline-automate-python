@@ -21,9 +21,9 @@
             <label for="exampleFormControlInput1" class="form-label">Name<span class="text-danger">*</span></label>
             <input type="text" name="username" id="username" class="form-control" placeholder="Your Name"
               value="{{ company_details['name'] }}" required>
+              <input type="hidden" name="old_username" id="old_username" value="{{ company_details['name'] }}">
           </div>
-          <!-- Hidden input field for old_username -->
-          <input name="old_username" id="old_username" value="{{ company_details['name'] }}">
+          </div>
 
           <div class="col-md-6">
             <div class="mb-3">
@@ -32,7 +32,8 @@
                 <option value="Ui" {% if company_details['company_name'] == 'Ui' %} selected {% endif %}>Ui</option>
                 <option value="Custom" {% if company_details['company_name'] == 'Custom' %} selected {% endif %}>Custom</option>
                 <option value="Api" {% if company_details['company_name'] == 'Api' %} selected {% endif %}>Api</option>
-              </select>
+            </select>
+            
             </div>
           </div>
         </div>
@@ -63,16 +64,12 @@
                   <label for="jobTypeSelect" class="form-label">Job Type<span class="text-danger">*</span></label>
                   <select class="form-select" id="jobTypeSelect" name="job_type" required>
                     <option value="" selected>Select Your Job Type</option>
-                    <option value="intern" {{ 'selected' if company_details['job_type']=='intern' else '' }}>Intern
-                    </option>
-                    <option value="web" {{ 'selected' if company_details['job_type']=='web' else '' }}>Web Developer
-                    </option>
-                    <option value="software" {{ 'selected' if company_details['job_type']=='software' else '' }}>
-                      Software Developer</option>
-                    <option value="flutter" {{ 'selected' if company_details['job_type']=='flutter' else '' }}>Flutter
-                      Developer</option>
-                  </select>
-                  <div class="invalid-feedback">Please select your job type.</div>
+                    <option value="intern" {% if company_details['job_type'] == 'intern' %} selected {% endif %}>Intern</option>
+                    <option value="web" {% if company_details['job_type'] == 'web' %} selected {% endif %}>Web Developer</option>
+                    <option value="software" {% if company_details['job_type'] == 'software' %} selected {% endif %}>Software Developer</option>
+                    <option value="flutter" {% if company_details['job_type'] == 'flutter' %} selected {% endif %}>Flutter Developer</option>
+                </select>
+                                  <div class="invalid-feedback">Please select your job type.</div>
                 </div>
               </div>
             </div>
@@ -84,8 +81,10 @@
                   class="text-danger">*</span></label>
               <input type="text" name="repourl" class="form-control" placeholder="repo_url"
                 value="{{ company_details['repository url'] }}" required>
-                  <!-- Hidden input field for old_username -->
-          <input name="old_repo_url" id="old_username" value="{{ company_details['repository url'] }}">
+              <!-- Hidden input field for old_username -->
+              <!-- Add hidden input fields for old and new repo URLs -->
+              <input type="hidden" name="old_repourl" id="old_repourl">
+              <input type="hidden" name="new_repourl" id="new_repourl">
             </div>
           </div>
         </div>
@@ -270,47 +269,40 @@
               }
             });
           });
-
           $(document).ready(function () {
-            // Get the initial value of the username field
+            // Get the initial value of the username and repo_url fields
             var initialUsername = $('#username').val();
 
-            // Whenever the username field changes
+            // Whenever the username or repo_url field changes
             $('#username').on('input', function () {
-              // Get the new value of the username field
-              var newUsername = $(this).val();
+              // Get the new value of the username and repo_url fields
+              var newUsername = $('#username').val();
 
-              // Update the value of the hidden input field for old_username
+              // Update the value of the hidden input field for old_username and old_repo_url
               $('#old_username').val(initialUsername);
-
-              // Update the value of the hidden input field for new_username
               $('#new_username').val(newUsername);
 
-              // Update the initialUsername variable with the new value
+              // Update the initialUsername and initialRepoUrl variables with the new values
               initialUsername = newUsername;
             });
           });
-
           $(document).ready(function () {
-    // Get the initial value of the repo_url field
-    var initialRepoUrl = $('#repo_url').val();
+        // Get the initial value of the repo_url field
+        var initialRepoUrl = $('#repourl').val();
 
-    // Whenever the repo_url field changes
-    $('#repo_url').on('input', function () {
-      // Get the new value of the repo_url field
-      var newRepoUrl = $(this).val();
+        // Whenever the repo_url field changes
+        $('#repourl').on('input', function () {
+            // Get the new value of the repo_url field
+            var newRepoUrl = $(this).val();
 
-      // Update the value of the hidden input field for old_repo_url
-      $('#old_repo_url').val(initialRepoUrl);
+            // Update the value of the hidden input field for old_repo_url and new_repo_url
+            $('#old_repourl').val(initialRepoUrl);
+            $('#new_repourl').val(newRepoUrl);
 
-      // Update the value of the hidden input field for new_repo_url
-      $('#new_repo_url').val(newRepoUrl);
-
-      // Update the initialRepoUrl variable with the new value
-      initialRepoUrl = newRepoUrl;
+            // Update the initialRepoUrl variable with the new value
+            initialRepoUrl = newRepoUrl;
+        });
     });
-  });
-
 
         </script>
 

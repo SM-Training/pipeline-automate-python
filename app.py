@@ -146,9 +146,6 @@ def delete_folder_from_github(company_name, repo_name, github_token):
         logging.error(f"An error occurred while deleting folder '{file_path}': {e}")
         return False
 
-
-print(delete_folder_from_github('Custom', 'SM.git', GITHUB_TOKEN))
-
  
 def fetch_file_names(company_name,repo_name, access_token):
     file_names = []
@@ -425,6 +422,15 @@ def update():
             new_username = request.form.get('username')
             old_username = request.form.get('old_username')
             company_name = request.form.get('companyname')
+            old_repo_url = request.form.get('old_repo_url')
+            new_repo_url = request.form.get('new_repo_url')
+
+            print(new_username)
+            print(old_username)
+
+            print(old_repo_url)
+            print(new_repo_url)
+
 
             repo_parts = new_data["repository url"].split('/')
             repo_name = repo_parts[-1]
