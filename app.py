@@ -96,56 +96,6 @@ def delete_file_from_github(company_name,repo_name,file_name,github_token):
 
     return True
 
-
-def delete_folder_from_github(company_name, repo_name, github_token):
-    file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}'
-    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
-
-    print(url)
-    print(file_path)
-
-    headers = {
-        'Authorization': f'token {github_token}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
-
-    try:
-        # Fetch the folder's contents
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()  # Raise an exception for non-200 status codes
-
-        folder_contents = response.json()
-
-        # Iterate through folder contents to find the file metadata for the folder
-        for file_data in folder_contents:
-            if file_data['type'] == 'dir' and file_data['path'] == file_path:
-                sha = file_data['sha']  # Get the SHA of the folder
-                break
-        else:
-            logging.error(f"Folder '{file_path}' not found in the GitHub repository.")
-            return False
-
-        # Prepare the deletion request payload
-        payload = {
-            'message': 'Delete folder',  # Provide a descriptive message for the deletion
-            'sha': sha  # Include the SHA hash of the folder
-        }
-
-        # Send the deletion request
-        response = requests.delete(url, headers=headers, json=payload)
-        response.raise_for_status()  # Raise an exception for non-200 status codes
-
-        if response.status_code == 200:
-            logging.info(f"Folder '{file_path}' deleted successfully from the GitHub repository.")
-            return True
-        else:
-            logging.error(f"Failed to delete folder '{file_path}'. Status code: {response.status_code}. Error: {response.json()['message']}")
-            return False
-
-    except requests.exceptions.RequestException as e:
-        logging.error(f"An error occurred while deleting folder '{file_path}': {e}")
-        return False
-
  
 def fetch_file_names(company_name,repo_name, access_token):
     file_names = []
@@ -422,15 +372,8 @@ def update():
             new_username = request.form.get('username')
             old_username = request.form.get('old_username')
             company_name = request.form.get('companyname')
-            old_repo_url = request.form.get('old_repo_url')
-            new_repo_url = request.form.get('new_repo_url')
-
-            print(new_username)
-            print(old_username)
-
-            print(old_repo_url)
-            print(new_repo_url)
-
+            old_repo_url = request.form.get('old_repourl')
+            new_repo_url = request.form.get('repourl')
 
             repo_parts = new_data["repository url"].split('/')
             repo_name = repo_parts[-1]
@@ -443,11 +386,11 @@ def update():
                 new_data['name'] = new_username
                 save_to_github(new_data)
 
-                return redirect(url_for('update'))  
+                return  "Updated"
             
             else:
                 save_to_github(new_data)
-                return redirect(url_for('update')) 
+                return "Updated"
 
         except Exception as e:
             error_message = traceback.format_exc()  # Get the full traceback as a string
@@ -517,40 +460,6 @@ def save_to_github(data):
         return 'File saved successfully to GitHub.'
     else:
         return f'Failed to save file to GitHub. Status code: {response.status_code}'
-
-
-# @app.route('/add', methods=['GET', 'POST'])
-# def add_form():
-#     if request.method == 'POST':
-#         # Extract data from the form
-#         data = {
-#             "name": request.form.get('username'),
-#             "company name": request.form.get('companyname'),
-#             "repository url": request.form.get('repourl'),
-#             "enabled": request.form.get('enabled'),
-#             "job_type": request.form.get('job_type'),
-#             "run_command": request.form.get('runcmnd'),
-#             "src_path": request.form.get('srcpath'),
-#             "application_port": request.form.get('applicationport'),
-#             "deploy_port": request.form.get('deployport'),
-#             "ssh_port_prod": request.form.get('sshportprod'),
-#             "ssh_port_dev": request.form.get('sshportdev'),
-#             "build_command": request.form.get('buildcommand'),
-#             "pvt_deploy_servers_dev": format_ip_addresses(request.form.get('pvtdeployserversdev')),
-#             "deploy_servers_dev": format_ip_addresses(request.form.get('deployserversdev')),
-#             "pvt_deploy_servers_prod": format_ip_addresses(request.form.get('pvtdeployserversprod')),
-#             "deploy_servers_prod": format_ip_addresses(request.form.get('deployserversprod')),
-#             "deploy_env_prod": request.form.get('deployenvprod'),
-#             "deploy_env_dev": request.form.get('deployenvdev'),
-#             "deploy_env": request.form.get('deployenv')
-#         }
-
-#         # Save data to GitHub
-#         result = save_to_github(data)
-
-#         return result
-
-#     return "Data saved successfully!!"
 
 
 @app.route('/create')
