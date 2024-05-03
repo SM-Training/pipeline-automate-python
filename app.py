@@ -14,6 +14,10 @@ import logging
 
 load_dotenv()
 
+
+print(inspect.version)
+
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Secret key for session
 
@@ -57,27 +61,16 @@ def check_rate_limit(response):
         # If response does not contain headers, return default values
         return 0, 0
  
- 
- 
- # Function to delete a file from GitHub repository
-import logging
 
-import requests
-import logging
 
 def delete_file_from_github(company_name,repo_name,file_name,github_token):
-
-     
     file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{file_name}'
     url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
-
-    print(url)
 
     headers = {
         'Authorization': f'token {github_token}',
         'Accept': 'application/vnd.github.v3+json'
     }
-
     # Fetch the file's current content and SHA hash
     try:
         response = requests.get(url, headers=headers)
@@ -104,11 +97,6 @@ def delete_file_from_github(company_name,repo_name,file_name,github_token):
         return False
 
     return True
-
-# if delete_file_from_github('Api','SM mathematics.git','ShreyaMaurya.yaml', GITHUB_TOKEN):
-#     print(f"File deleted successfully.")
-# else:
-#     print(f"Failed to delete file ")
 
 
 
@@ -216,6 +204,7 @@ def get_company_details(company_name, repo_name, file_name, REPO_OWNER, REPO_NAM
         print(f"Failed to fetch YAML content. Status code: {response.status_code}")
     return company_details
 
+print(get_company_details('Custom','SM.git','T.yaml',REPO_OWNER,REPO_NAME,GITHUB_TOKEN))
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_form():
@@ -413,15 +402,6 @@ def update():
             return render_template("error.html", error_message=error_message)
 
     return "Updated"
-
-def format_ip_addresses(ip_string):
-    if not ip_string:
-        return ''
-    ip_list = ip_string.split()
-    
-    formatted_ips = ' '.join(['-' + ip for ip in ip_list])
-    
-    return formatted_ips
 
 
 def save_to_github(data):
