@@ -19,7 +19,7 @@ app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Secret key for session
 
 # MongoDB connection
-mongo_client = MongoClient('mongodb://localhost:27017/')
+mongo_client = MongoClient('mongodb://77.37.45.154:27017/')
 db = mongo_client['UserAuth']
 users_collection = db['Users']
 
