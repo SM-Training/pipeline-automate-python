@@ -1,20 +1,78 @@
-import time
-import traceback
-from flask import Flask, jsonify, render_template, request, redirect, session, url_for
+from flask import Flask, jsonify, request, redirect, session, url_for, render_template
+from flask_restful import Api, Resource, reqparse
+from werkzeug.security import generate_password_hash, check_password_hash
 import requests
 import yaml
 import os
 import base64
-from collections import OrderedDict
-from dotenv import load_dotenv
-from pymongo import MongoClient
-from werkzeug.security import generate_password_hash, check_password_hash
 import logging
+from pymongo import MongoClient
+from dotenv import load_dotenv
 
 load_dotenv()
 
+# Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Secret key for session
+api = Api(app)
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# MongoDB connection
+mongo_client = MongoClient('mongodb://77.37.45.154:27017/')
+db = mongo_client['UserAuth']
+users_collection = db['Users']
+
+# Example database for storing user data
+users = [
+    {'username': 'user1', 'password_hash': generate_password_hash('password1')},
+    {'username': 'user2', 'password_hash': generate_password_hash('password2')}
+]
+
+# Parser for parsing login/signup requests
+parser = reqparse.RequestParser()
+parser.add_argument('username', type=str, required=True, help="Username is required")
+parser.add_argument('password', type=str, required=True, help="Password is required")
+
+class Login(Resource):
+    def post(self):
+        args = parser.parse_args()
+        username = args['username']
+        password = args['password']
+
+        # Check if user exists
+        user = next((u for u in users if u['username'] == username), None)
+        if user and check_password_hash(user['password_hash'], password):
+            session['username'] = username  # Log in the user
+            return {'message': 'Login successful'}, 200
+        else:
+            return {'error': 'Invalid username or password'}, 401
+
+class Signup(Resource):
+    def post(self):
+        args = parser.parse_args()
+        username = args['username']
+        password = args['password']
+
+        # Check if username is already taken
+        if users_collection.find_one({'username': username}):
+            return {'error': 'Username already exists'}, 400
+
+        # Hash the password
+        password_hash = generate_password_hash(password)
+
+        # Insert new user data into MongoDB
+        user_data = {'username': username, 'password': password_hash}
+        users_collection.insert_one(user_data)
+
+        return {'message': 'Signup successful'}, 201
+
+# Add resources to the API
+api.add_resource(Login, '/login')
+api.add_resource(Signup, '/signup')
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -523,3 +581,5 @@ def logout():
     
 if __name__ == '__main__':
     app.run(debug=True)
+app.secret_key = os.urandom(24)  # Secret key for session
+
