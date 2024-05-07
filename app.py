@@ -516,68 +516,68 @@ def new_index():
         return "An error occurred"
 
 # Login authentication
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    try:
-        if request.method == 'POST':
-            username = request.form['username']
-            password = request.form['password']
+# @app.route('/login', methods=['GET', 'POST'])
+# def login():
+#     try:
+#         if request.method == 'POST':
+#             username = request.form['username']
+#             password = request.form['password']
 
-            # Check if the username exists in the database
-            user = users_collection.find_one({'username': username})
-            if user and check_password_hash(user['password'], password):
-                # If username and password match, log in the user
-                session['username'] = username
-                return redirect('/')
-            else:
-                # If username or password is incorrect, render the login page with an error
-                return render_template('login.html', error='Invalid username or password')
+#             # Check if the username exists in the database
+#             user = users_collection.find_one({'username': username})
+#             if user and check_password_hash(user['password'], password):
+#                 # If username and password match, log in the user
+#                 session['username'] = username
+#                 return redirect('/')
+#             else:
+#                 # If username or password is incorrect, render the login page with an error
+#                 return render_template('login.html', error='Invalid username or password')
 
-        else:
-            # If it's a GET request, render the login form
-            return render_template('login.html')
-    except Exception as e:
-        # Log any exceptions
-        logger.error(f"An error occurred in /login route: {str(e)}")
-        return "An error occurred"
+#         else:
+#             # If it's a GET request, render the login form
+#             return render_template('login.html')
+#     except Exception as e:
+#         # Log any exceptions
+#         logger.error(f"An error occurred in /login route: {str(e)}")
+#         return "An error occurred"
 
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
-    try:
-        if request.method == 'POST':
-            # Retrieve form data
-            username = request.form.get('username')
-            password = request.form.get('password')
+# @app.route('/signup', methods=['GET', 'POST'])
+# def signup():
+#     try:
+#         if request.method == 'POST':
+#             # Retrieve form data
+#             username = request.form.get('username')
+#             password = request.form.get('password')
 
-            # Check if the username already exists
-            if users_collection.find_one({'username': username}):
-                error_message = 'Username already exists. Please choose a different username.'
-                return render_template('sign_up.html', error=error_message)
+#             # Check if the username already exists
+#             if users_collection.find_one({'username': username}):
+#                 error_message = 'Username already exists. Please choose a different username.'
+#                 return render_template('sign_up.html', error=error_message)
 
-            # Hash the password before storing it
-            hashed_password = generate_password_hash(password)
+#             # Hash the password before storing it
+#             hashed_password = generate_password_hash(password)
 
-            # Insert new user data into MongoDB
-            user_data = {'username': username, 'password': hashed_password}
-            users_collection.insert_one(user_data)
+#             # Insert new user data into MongoDB
+#             user_data = {'username': username, 'password': hashed_password}
+#             users_collection.insert_one(user_data)
 
-            return redirect(url_for('login'))
-        else:
-            return render_template('sign_up.html')
-    except Exception as e:
-        # Log any exceptions
-        logger.error(f"An error occurred in /signup route: {str(e)}")
-        return "An error occurred"
+#             return redirect(url_for('login'))
+#         else:
+#             return render_template('sign_up.html')
+#     except Exception as e:
+#         # Log any exceptions
+#         logger.error(f"An error occurred in /signup route: {str(e)}")
+#         return "An error occurred"
 
-@app.route('/logout')
-def logout():
-    try:
-        session.pop('username', None)  # Remove the username from the session
-        return redirect(url_for('login')) 
-    except Exception as e:
-        # Log any exceptions
-        logger.error(f"An error occurred in /logout route: {str(e)}")
-        return "An error occurred"
+# @app.route('/logout')
+# def logout():
+#     try:
+#         session.pop('username', None)  # Remove the username from the session
+#         return redirect(url_for('login')) 
+#     except Exception as e:
+#         # Log any exceptions
+#         logger.error(f"An error occurred in /logout route: {str(e)}")
+#         return "An error occurred"
     
 if __name__ == '__main__':
     app.run(debug=True)
