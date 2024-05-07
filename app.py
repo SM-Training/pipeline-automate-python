@@ -299,7 +299,7 @@ def add_form():
         file_name = f'{data["name"]}.yaml'
         file_path = f'Pipeline/SoftwareMathematics/{data["company name"]}/{repo_name}/{file_name}'
 
-        url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}?ref=pipeline-1'
+        url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}?ref=pipeline'
 
         headers = {
             'Authorization': f'token {GITHUB_TOKEN}',
@@ -388,7 +388,7 @@ def update():
 
                 # Save the updated file to GitHub with the new username
                 new_data['name'] = new_username
-                save_to_github(new_data,branch='pipeline-1')
+                save_to_github(new_data,branch='pipeline')
 
                 return  "Updated"
             
@@ -404,7 +404,7 @@ def update():
     return "Updated"
 
 
-def save_to_github(data,branch='main'):
+def save_to_github(data,branch):
     field_order = [
         "name", "company_name", "repository url", "enabled", "job_type", "run_command",
         "src_path", "application_port", "deploy_port", "ssh_port_prod", "ssh_port_dev",
