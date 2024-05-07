@@ -14,9 +14,12 @@ import logging
 
 load_dotenv()
 
-
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Secret key for session
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # MongoDB connection
 mongo_client = MongoClient('mongodb://77.37.45.154:27017/')
@@ -27,7 +30,7 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 REPO_OWNER = os.getenv("REPO_OWNER")
 REPO_NAME = os.getenv("REPO_NAME")
 
- 
+
 ip_request_counts = {}
 
 
@@ -57,11 +60,9 @@ def check_rate_limit(response):
     else:
         # If response does not contain headers, return default values
         return 0, 0
- 
 
 
-def delete_file_from_github(company_name,repo_name,file_name,github_token):
-
+def delete_file_from_github(company_name, repo_name, file_name, github_token):
     file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{file_name}'
     url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
 
@@ -87,27 +88,29 @@ def delete_file_from_github(company_name,repo_name,file_name,github_token):
         response.raise_for_status()  # Raise an exception for non-200 status codes
 
         if response.status_code == 200:
-            logging.info(f"File '{file_path}' deleted successfully from the GitHub repository.")
+            logger.info(f"File '{file_path}' deleted successfully from the GitHub repository.")
         else:
-            logging.error(f"Failed to delete file '{file_path}' from the GitHub repository. Status code: {response.status_code}")
+            logger.error(
+                f"Failed to delete file '{file_path}' from the GitHub repository. Status code: {response.status_code}")
     except requests.exceptions.RequestException as e:
-        logging.error(f"An error occurred while deleting file '{file_path}': {e}")
+        logger.error(f"An error occurred while deleting file '{file_path}': {e}")
         return False
 
     return True
 
- 
-def fetch_file_names(company_name,repo_name, access_token):
+
+def fetch_file_names(company_name, repo_name, access_token):
     file_names = []
 
-    target_url = (f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/Pipeline/SoftwareMathematics/'
-                  f'{company_name}/{repo_name}')
+    target_url = (
+            f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/Pipeline/SoftwareMathematics/'
+            f'{company_name}/{repo_name}')
     headers = {"Authorization": f"token {access_token}"} if access_token else {}
 
     response = requests.get(target_url, headers=headers)
 
     if response.status_code != 200:
-        print(f"Failed to fetch Files. Status code: {response.status_code}")
+        logger.error(f"Failed to fetch Files. Status code: {response.status_code}")
         return file_names
 
     for item in response.json():
@@ -120,15 +123,16 @@ def fetch_file_names(company_name,repo_name, access_token):
 def fetch_repo_names(company_name, access_token):
     repo_names = []
 
-    target_url = (f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/Pipeline/SoftwareMathematics/'
-                  f'{company_name}')
+    target_url = (
+            f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/Pipeline/SoftwareMathematics/'
+            f'{company_name}')
 
     headers = {"Authorization": f"token {access_token}"} if access_token else {}
 
     response = requests.get(target_url, headers=headers)
 
     if response.status_code != 200:
-        print(f"Failed to fetch repositories. Status code: {response.status_code}")
+        logger.error(f"Failed to fetch repositories. Status code: {response.status_code}")
         return repo_names
 
     for item in response.json():
@@ -157,8 +161,8 @@ def get_company_names(repo_owner, repo_name, github_token):
         # Append directory names to company_names list
         company_names.extend(directories)
     else:
-        print(f"Failed too fetch company names. Status code: {response.status_code}")
-        print("Response content:", response.content.decode())  # Print response content for debugging
+        logger.error(f"Failed to fetch company names. Status code: {response.status_code}")
+        logger.error("Response content: %s", response.content.decode())  # Print response content for debugging
 
     return company_names
 
@@ -197,8 +201,9 @@ def get_company_details(company_name, repo_name, file_name, REPO_OWNER, REPO_NAM
         else:
             company_details = {}
     else:
-        print(f"Failed to fetch YAML content. Status code: {response.status_code}")
+        logger.error(f"Failed to fetch YAML content. Status code: {response.status_code}")
     return company_details
+
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_form():
@@ -233,7 +238,6 @@ def add_form():
         deploy_servers_dev_list = ' '.join(
             ['-' + ip for ip in filter(None, deploy_servers_dev.split())]) if deploy_servers_dev else ''
         deploy_env_list = ' '.join(['-' + ip for ip in filter(None, deploy_env.split())]) if deploy_env else ''
-
 
         # Define the order of fields
         field_order = [
@@ -305,7 +309,7 @@ def add_form():
             'Authorization': f'token {GITHUB_TOKEN}',
             'Accept': 'application/vnd.github.v3+json'
         }
-        
+
         response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
@@ -326,8 +330,10 @@ def add_form():
             response = requests.put(url, headers=headers, json=payload)
 
         if response.status_code == 201 or response.status_code == 200:
+            logger.info('File saved successfully to GitHub.')
             return 'File saved successfully to GitHub.'
         else:
+            logger.error(f'Failed to save file to GitHub. Status code: {response.status_code}')
             return f'Failed to save file to GitHub. Status code: {response.status_code}'
 
     return "Data saved successfully!!"
@@ -346,9 +352,9 @@ def update():
         repo_names = request.args.get('repo_name')
         file_names = request.args.get('file_name')
         company_details = get_company_details(company_names, repo_names, file_names, REPO_OWNER, REPO_NAME,
-                                              GITHUB_TOKEN)
+                                               GITHUB_TOKEN)
         return render_template("update.html", company_details=company_details)
-    
+
     elif request.method == "POST":
         try:
             # Extract data from the form
@@ -389,16 +395,16 @@ def update():
                 # Save the updated file to GitHub with the new username
                 new_data['name'] = new_username
                 save_to_github(new_data)
-
-                return  "Updated"
-            
+                logger.info("Updated")
+                return "Updated"
             else:
                 save_to_github(new_data)
+                logger.info("Updated")
                 return "Updated"
 
         except Exception as e:
             error_message = traceback.format_exc()  # Get the full traceback as a string
-            print(f"An error occurred at line {inspect.currentframe().f_lineno}: {error_message}")
+            logger.error(f"An error occurred at line {inspect.currentframe().f_lineno}: {error_message}")
             return render_template("error.html", error_message=error_message)
 
     return "Updated"
@@ -412,7 +418,7 @@ def save_to_github(data):
         "pvt_deploy_servers_prod", "deploy_servers_prodt", "deploy_env_prod",
         "deploy_env_dev", "deploy_env"
     ]
-    
+
     # Format the data into YAML format
     formatted_yaml = ''
     for field in field_order:
@@ -461,8 +467,10 @@ def save_to_github(data):
 
     # Return the result message
     if response.status_code == 201 or response.status_code == 200:
+        logger.info('File saved successfully to GitHub.')
         return 'File saved successfully to GitHub.'
     else:
+        logger.error(f'Failed to save file to GitHub. Status code: {response.status_code}')
         return f'Failed to save file to GitHub. Status code: {response.status_code}'
 
 
@@ -496,15 +504,16 @@ def new_index():
             company_names = get_company_names(REPO_OWNER, REPO_NAME, GITHUB_TOKEN)
 
             # Log company names
-            logging.info(f"Company names: {company_names}")
+            logger.info(f"Company names: {company_names}")
 
             return render_template("base.html", company_names=company_names)
         except Exception as e:
             # Log any exceptions
-            logging.error(f"An error occurred: {str(e)}")
+            logger.error(f"An error occurred: {str(e)}")
             return "An error occurred"
 
-# Login authentication 
+
+# Login authentication
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -545,23 +554,16 @@ def signup():
         user_data = {'username': username, 'password': hashed_password}
         users_collection.insert_one(user_data)
 
-        return redirect(url_for('login'))  # Redirect to login page after successful signup
-
-    return render_template('sign_up.html')
+        return redirect(url_for('login'))
+    else:
+        return render_template('sign_up.html')
 
 
 @app.route('/logout')
 def logout():
-    # Clear the session
-    session.pop('username', None)
-    # Redirect to the logout page
-    return redirect(url_for('logout_page'))
+    session.pop('username', None)  # Remove the username from the session
+    return redirect(url_for('login'))  # Redirect to the login page
 
 
-@app.route('/logout_page')
-def logout_page():
-    return render_template('logout.html')
-
-
-if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5000)
+if __name__ == '__main__':
+    app.run(debug=True)
