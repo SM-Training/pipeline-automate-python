@@ -32,8 +32,8 @@ REPO_NAME = os.getenv("REPO_NAME")
 
 ip_request_counts = {}
 
-
 def update_ip_request_count(ip_address):
+    logger.info(f"Updating request count for IP address: {ip_address}")
     current_time = time.time()
     if ip_address in ip_request_counts:
         count, timestamp = ip_request_counts[ip_address]
@@ -52,6 +52,7 @@ def update_ip_request_count(ip_address):
 
 
 def check_rate_limit(response):
+    logger.info("Checking rate limit")
     if 'headers' in response:
         remaining = int(response['headers'].get('X-RateLimit-Remaining', 0))
         reset_time = int(response['headers'].get('X-RateLimit-Reset', 0))
@@ -62,6 +63,7 @@ def check_rate_limit(response):
 
 
 def delete_file_from_github(company_name, repo_name, file_name, github_token):
+    logger.info(f"Deleting file '{file_name}' from GitHub")
     file_path = f'Pipeline/SoftwareMathematics/{company_name}/{repo_name}/{file_name}'
     url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
 
@@ -99,6 +101,7 @@ def delete_file_from_github(company_name, repo_name, file_name, github_token):
 
 
 def fetch_file_names(company_name, repo_name, access_token):
+    logger.info(f"Fetching file names for company '{company_name}' and repo '{repo_name}'")
     file_names = []
 
     target_url = (
@@ -120,6 +123,7 @@ def fetch_file_names(company_name, repo_name, access_token):
 
 
 def fetch_repo_names(company_name, access_token):
+    logger.info(f"Fetching repository names for company '{company_name}'")
     repo_names = []
 
     target_url = (
@@ -139,6 +143,7 @@ def fetch_repo_names(company_name, access_token):
             repo_names.append(item["name"])
 
     return repo_names
+
 
 
 def get_company_names(repo_owner, repo_name, github_token):
@@ -338,7 +343,7 @@ def add_form():
     return "Data saved successfully!!"
 
 def format_ip_list(ip_string):
-    """Format a string containing IP addresses separated by spaces."""
+
     if ip_string:
         return ' '.join(['-' + ip for ip in filter(None, ip_string.split())])
     else:
@@ -403,11 +408,10 @@ def update():
 
         except Exception as e:
             error_message = traceback.format_exc()  # Get the full traceback as a string
-            logger.error(f"An error occurred at line {inspect.currentframe().f_lineno}: {error_message}")
+            logger.error(f"An error occurred: {error_message}")  # Log the error message
             return render_template("error.html", error_message=error_message)
 
     return "Updated"
-
 
 def save_to_github(data):
     field_order = [
@@ -475,30 +479,33 @@ def save_to_github(data):
 
 @app.route('/create')
 def create_user():
-    return render_template("index.html")
-
+    try:
+        return render_template("index.html")
+    except Exception as e:
+        logger.error(f"An error occurred in /create route: {str(e)}")
+        return "An error occurred"
 
 @app.route('/', methods=['GET', 'POST'])
 def new_index():
-    if 'username' not in session:
-        # If user is not logged in, redirect to login page
-        return redirect(url_for('login'))
-    if request.method == 'POST':
-        data = request.get_json()
-        company_names = data.get('company_name')
-        repo_names = data.get('repo_name')
-        file_names = data.get('file_name')
-        if company_names and not repo_names:
-            repo_names = fetch_repo_names(company_names, GITHUB_TOKEN)
-            return jsonify(repo_names)
+    try:
+        if 'username' not in session:
+            # If user is not logged in, redirect to login page
+            return redirect(url_for('login'))
+        if request.method == 'POST':
+            data = request.get_json()
+            company_names = data.get('company_name')
+            repo_names = data.get('repo_name')
+            file_names = data.get('file_name')
+            if company_names and not repo_names:
+                repo_names = fetch_repo_names(company_names, GITHUB_TOKEN)
+                return jsonify(repo_names)
 
-        if company_names and repo_names:
-            file_names = fetch_file_names(company_names, repo_names, GITHUB_TOKEN)
-            return jsonify(file_names)
+            if company_names and repo_names:
+                file_names = fetch_file_names(company_names, repo_names, GITHUB_TOKEN)
+                return jsonify(file_names)
+            else:
+                return jsonify({})
         else:
-            return jsonify({})
-    else:
-        try:
             # Handle the GET request here
             company_names = get_company_names(REPO_OWNER, REPO_NAME, GITHUB_TOKEN)
 
@@ -506,63 +513,74 @@ def new_index():
             logger.info(f"Company names: {company_names}")
 
             return render_template("base.html", company_names=company_names)
-        except Exception as e:
-            # Log any exceptions
-            logger.error(f"An error occurred: {str(e)}")
-            return "An error occurred"
-
+    except Exception as e:
+        # Log any exceptions
+        logger.error(f"An error occurred in / route: {str(e)}")
+        return "An error occurred"
 
 # Login authentication
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+    try:
+        if request.method == 'POST':
+            username = request.form['username']
+            password = request.form['password']
 
-        # Check if the username exists in the database
-        user = users_collection.find_one({'username': username})
-        if user and check_password_hash(user['password'], password):
-            # If username and password match, log in the user
-            session['username'] = username
-            return redirect('/')
+            # Check if the username exists in the database
+            user = users_collection.find_one({'username': username})
+            if user and check_password_hash(user['password'], password):
+                # If username and password match, log in the user
+                session['username'] = username
+                return redirect('/')
+            else:
+                # If username or password is incorrect, render the login page with an error
+                return render_template('login.html', error='Invalid username or password')
+
         else:
-            # If username or password is incorrect, render the login page with an error
-            return render_template('login.html', error='Invalid username or password')
-
-    else:
-        # If it's a GET request, render the login form
-        return render_template('login.html')
-
+            # If it's a GET request, render the login form
+            return render_template('login.html')
+    except Exception as e:
+        # Log any exceptions
+        logger.error(f"An error occurred in /login route: {str(e)}")
+        return "An error occurred"
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    if request.method == 'POST':
-        # Retrieve form data
-        username = request.form.get('username')
-        password = request.form.get('password')
+    try:
+        if request.method == 'POST':
+            # Retrieve form data
+            username = request.form.get('username')
+            password = request.form.get('password')
 
-        # Check if the username already exists
-        if users_collection.find_one({'username': username}):
-            error_message = 'Username already exists. Please choose a different username.'
-            return render_template('sign_up.html', error=error_message)
+            # Check if the username already exists
+            if users_collection.find_one({'username': username}):
+                error_message = 'Username already exists. Please choose a different username.'
+                return render_template('sign_up.html', error=error_message)
 
-        # Hash the password before storing it
-        hashed_password = generate_password_hash(password)
+            # Hash the password before storing it
+            hashed_password = generate_password_hash(password)
 
-        # Insert new user data into MongoDB
-        user_data = {'username': username, 'password': hashed_password}
-        users_collection.insert_one(user_data)
+            # Insert new user data into MongoDB
+            user_data = {'username': username, 'password': hashed_password}
+            users_collection.insert_one(user_data)
 
-        return redirect(url_for('login'))
-    else:
-        return render_template('sign_up.html')
-
+            return redirect(url_for('login'))
+        else:
+            return render_template('sign_up.html')
+    except Exception as e:
+        # Log any exceptions
+        logger.error(f"An error occurred in /signup route: {str(e)}")
+        return "An error occurred"
 
 @app.route('/logout')
 def logout():
-    session.pop('username', None)  # Remove the username from the session
-    return redirect(url_for('login'))  # Redirect to the login page
-
-
+    try:
+        session.pop('username', None)  # Remove the username from the session
+        return redirect(url_for('login')) 
+    except Exception as e:
+        # Log any exceptions
+        logger.error(f"An error occurred in /logout route: {str(e)}")
+        return "An error occurred"
+    
 if __name__ == '__main__':
     app.run(debug=True)
