@@ -332,7 +332,13 @@ def add_form():
 
     return "Data saved successfully!!"
 
-
+def format_ip_list(ip_string):
+    """Format a string containing IP addresses separated by spaces."""
+    if ip_string:
+        return ' '.join(['-' + ip for ip in filter(None, ip_string.split())])
+    else:
+        return ''
+    
 @app.route('/update', methods=['GET', 'POST'])
 def update():
     if request.method == "GET":
@@ -359,10 +365,10 @@ def update():
                 'ssh_port_prod': request.form.get('sshportprod'),
                 'ssh_port_dev': request.form.get('sshportdev'),
                 'build_command': request.form.get('buildcommand'),
-                'pvt_deploy_servers_dev': request.form.get('pvtdeployserversdev'),
-                'deploy_servers_dev': request.form.get('deployserversdev'),
-                'pvt_deploy_servers_prod': request.form.get('pvtdeployserversprod'),
-                'deploy_servers_prod': request.form.get('deployserversprod'),
+                'pvt_deploy_servers_dev': format_ip_list(request.form.get('pvtdeployserversdev')),
+                'deploy_servers_dev': format_ip_list(request.form.get('deployserversdev')),
+                'pvt_deploy_servers_prod': format_ip_list(request.form.get('pvtdeployserversprod')),
+                'deploy_servers_prod': format_ip_list(request.form.get('deployserversprod')),
                 'deploy_env_prod': request.form.get('deployenvprod'),
                 'deploy_env_dev': request.form.get('deployenvdev'),
                 'deploy_env': request.form.get('deployenv')
@@ -372,8 +378,6 @@ def update():
             new_username = request.form.get('username')
             old_username = request.form.get('old_username')
             company_name = request.form.get('companyname')
-            old_repo_url = request.form.get('old_repourl')
-            new_repo_url = request.form.get('repourl')
 
             repo_parts = new_data["repository url"].split('/')
             repo_name = repo_parts[-1]
@@ -405,7 +409,7 @@ def save_to_github(data):
         "name", "company_name", "repository url", "enabled", "job_type", "run_command",
         "src_path", "application_port", "deploy_port", "ssh_port_prod", "ssh_port_dev",
         "build_command", "pvt_deploy_servers_dev", "deploy_servers_dev",
-        "pvt_deploy_servers_prod", "deploy_servers_prod", "deploy_env_prod",
+        "pvt_deploy_servers_prod", "deploy_servers_prodt", "deploy_env_prod",
         "deploy_env_dev", "deploy_env"
     ]
     
