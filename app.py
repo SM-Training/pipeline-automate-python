@@ -1,4 +1,3 @@
-import inspect
 import time
 import traceback
 from flask import Flask, jsonify, render_template, request, redirect, session, url_for
@@ -212,6 +211,7 @@ def get_company_details(company_name, repo_name, file_name, REPO_OWNER, REPO_NAM
 @app.route('/add', methods=['GET', 'POST'])
 def add_form():
     if request.method == 'POST':
+        # Retrieve form data
         username = request.form.get('username')
         companyname = request.form.get('companyname')
         repo_url = request.form.get('repourl')
@@ -233,41 +233,25 @@ def add_form():
         deploy_env = request.form.get('deployenv')
 
         # Assuming pvt_deploy_servers_dev is a string containing IP addresses separated by spaces
-        pvt_deploy_servers_dev_list = ' '.join(
-            ['-' + ip for ip in filter(None, pvt_deploy_servers_dev.split())]) if pvt_deploy_servers_dev else ''
-        deploy_servers_prod_list = ' '.join(
-            ['-' + ip for ip in filter(None, deploy_servers_prod.split())]) if deploy_servers_prod else ''
-        pvt_deploy_servers_prod_list = ' '.join(
-            ['-' + ip for ip in filter(None, pvt_deploy_servers_prod.split())]) if pvt_deploy_servers_prod else ''
-        deploy_servers_dev_list = ' '.join(
-            ['-' + ip for ip in filter(None, deploy_servers_dev.split())]) if deploy_servers_dev else ''
-        deploy_env_list = ' '.join(['-' + ip for ip in filter(None, deploy_env.split())]) if deploy_env else ''
+        pvt_deploy_servers_dev_list = format_ip_list(pvt_deploy_servers_dev)
+        deploy_servers_prod_list = format_ip_list(deploy_servers_prod)
+        pvt_deploy_servers_prod_list = format_ip_list(pvt_deploy_servers_prod)
+        deploy_servers_dev_list = format_ip_list(deploy_servers_dev)
+        deploy_env_list = format_ip_list(deploy_env)
 
         # Define the order of fields
         field_order = [
-            "name",
-            "company name",
-            "repository url",
-            "enabled",
-            "job_type",
-            "run_command",
-            "src_path",
-            "application_port",
-            "deploy_port",
-            "ssh_port_prod",
-            "ssh_port_dev",
-            "build_command",
-            "pvt_deploy_servers_dev",
-            "deploy_servers_dev",
-            "pvt_deploy_servers_prod",
-            "deploy_servers_prod",
-            "deploy_env_prod",
-            "deploy_env_dev",
-            "deploy_env"
+            "name", "company_name", "repository url", "enabled", "job_type", "run_command",
+            "src_path", "application_port", "deploy_port", "ssh_port_prod", "ssh_port_dev",
+            "build_command", "pvt_deploy_servers_dev", "deploy_servers_dev",
+            "pvt_deploy_servers_prod", "deploy_servers_prodt", "deploy_env_prod",
+            "deploy_env_dev", "deploy_env"
         ]
+
+        # Define the data
         data = {
             "name": username,
-            "company name": companyname,
+            "company_name": companyname,
             "repository url": repo_url,
             "enabled": enabled,
             "job_type": job_type,
@@ -287,60 +271,14 @@ def add_form():
             "deploy_env": deploy_env_list
         }
 
-        data = OrderedDict((key, data[key]) for key in field_order if key in data)
-
-        formatted_yaml = ''
-        for field in field_order:
-            if field in data:
-                value = data[field]
-                if isinstance(value, list):
-                    value = yaml.dump(value, default_flow_style=False).strip()
-                formatted_yaml += f"{field}: {value}\n"
-            else:
-                formatted_yaml += f"{field}: null\n"
-
-        file_content_base64 = base64.b64encode(formatted_yaml.encode()).decode()
-
-        repo_parts = data["repository url"].split('/')
-        repo_name = repo_parts[-1]
-
-        file_name = f'{data["name"]}.yaml'
-        file_path = f'Pipeline/SoftwareMathematics/{data["company name"]}/{repo_name}/{file_name}'
-
-        url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/contents/{file_path}'
-
-        headers = {
-            'Authorization': f'token {GITHUB_TOKEN}',
-            'Accept': 'application/vnd.github.v3+json'
-        }
-
-        response = requests.get(url, headers=headers)
-
-        if response.status_code == 200:
-            # File already exists, update its content
-            existing_file = response.json()
-            payload = {
-                'message': 'Update file',
-                'content': file_content_base64,
-                'sha': existing_file['sha']  # SHA of the existing file for update
-            }
-            response = requests.put(url, headers=headers, json=payload)
-        elif response.status_code == 404:
-            # File does not exist, create a new file
-            payload = {
-                'message': 'Create file',
-                'content': file_content_base64
-            }
-            response = requests.put(url, headers=headers, json=payload)
-
-        if response.status_code == 201 or response.status_code == 200:
-            logger.info('File saved successfully to GitHub.')
-            return 'File saved successfully to GitHub.'
-        else:
-            logger.error(f'Failed to save file to GitHub. Status code: {response.status_code}')
-            return f'Failed to save file to GitHub. Status code: {response.status_code}'
+        # Save to GitHub
+        result_message = save_to_github(data)
+        logger.info(result_message)
+        
+        return result_message
 
     return "Data saved successfully!!"
+
 
 def format_ip_list(ip_string):
 
@@ -349,6 +287,7 @@ def format_ip_list(ip_string):
     else:
         return ''
     
+
 @app.route('/update', methods=['GET', 'POST'])
 def update():
     if request.method == "GET":
