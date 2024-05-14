@@ -8,7 +8,8 @@ import base64
 import logging
 from pymongo import MongoClient
 from dotenv import load_dotenv
-
+import time
+import traceback
 load_dotenv()
 
 # Initialize Flask app
@@ -70,8 +71,8 @@ class Signup(Resource):
         return {'message': 'Signup successful'}, 201
 
 # Add resources to the API
-api.add_resource(Login, '/login')
-api.add_resource(Signup, '/signup')
+# api.add_resource(Login, '/login')
+# api.add_resource(Signup, '/signup')
 
 
 # Configure logging
@@ -580,5 +581,5 @@ def logout():
     
 if __name__ == '__main__':
     app.run(debug=True)
-app.secret_key = os.urandom(24)  # Secret key for session
+
 
