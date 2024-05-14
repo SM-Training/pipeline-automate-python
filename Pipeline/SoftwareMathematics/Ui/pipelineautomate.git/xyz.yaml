@@ -10,10 +10,10 @@ deploy_port: 213
 ssh_port_prod: sshport
 ssh_port_dev: sshdev
 build_command: mvn clean install DskipTests s $MAVEN_SETTING
-pvt_deploy_servers_dev: 185.207.250.107 185.207.250.107 185.207.250.107
-deploy_servers_dev: 185.207.250.107 185.207.250.107 185.207.250.107 185.207.250.107
-pvt_deploy_servers_prod: jhhkk
-deploy_servers_prod: dspp
+pvt_deploy_servers_dev: -185.207.250.107 -185.207.250.107 -185.207.250.107
+deploy_servers_dev: -185.207.250.107 -185.207.250.107 -185.207.250.107 -185.207.250.107
+pvt_deploy_servers_prod: -jhhkk
+deploy_servers_prodt: null
 deploy_env_prod: depp
 deploy_env_dev: https://redketchup.io/colorpicker
 deploy_env: dev
